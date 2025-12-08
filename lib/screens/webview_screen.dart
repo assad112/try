@@ -1,0 +1,389 @@
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import '../services/session_manager.dart';
+import 'login_screen.dart';
+
+class WebViewScreen extends StatefulWidget {
+  final bool shouldAutoFill;
+  
+  const WebViewScreen({super.key, this.shouldAutoFill = false});
+
+  @override
+  State<WebViewScreen> createState() => _WebViewScreenState();
+}
+
+class _WebViewScreenState extends State<WebViewScreen> {
+  late final WebViewController _controller;
+  bool _isLoading = true;
+  String? _username;
+  String? _password;
+  bool _hasAutoFilled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeWebView();
+    _loadCredentials();
+  }
+
+  Future<void> _loadCredentials() async {
+    final username = await SessionManager.getUsername();
+    final password = await SessionManager.getPassword();
+    setState(() {
+      _username = username;
+      _password = password;
+    });
+    
+    // إذا كانت هناك بيانات محفوظة، نفعّل التعبئة التلقائية دائماً
+    if (username != null && password != null && !widget.shouldAutoFill) {
+      // ننتظر قليلاً ثم نحاول التعبئة
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && !_hasAutoFilled) {
+          _autoFillFormWithRetry();
+        }
+      });
+    }
+  }
+
+  void _initializeWebView() {
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              _isLoading = true;
+              _hasAutoFilled = false;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              _isLoading = false;
+            });
+            // تعبئة الفورم تلقائياً بعد تحميل الصفحة
+            // ننتظر قليلاً للتأكد من تحميل DOM بالكامل
+            if (_username != null && _password != null) {
+              // محاولة متعددة مع تأخيرات مختلفة
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted && !_hasAutoFilled) {
+                  _autoFillFormWithRetry();
+                }
+              });
+              Future.delayed(const Duration(milliseconds: 1500), () {
+                if (mounted && !_hasAutoFilled) {
+                  _autoFillFormWithRetry();
+                }
+              });
+              Future.delayed(const Duration(milliseconds: 2500), () {
+                if (mounted && !_hasAutoFilled) {
+                  _autoFillFormWithRetry();
+                }
+              });
+            }
+          },
+          onProgress: (int progress) {
+            // محاولة تعبئة الفورم عند 100% من التحميل
+            if (progress == 100 && _username != null && _password != null) {
+              Future.delayed(const Duration(milliseconds: 2000), () {
+                if (mounted && !_hasAutoFilled) {
+                  _autoFillFormWithRetry();
+                }
+              });
+            }
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse('https://erp.jeel.om/'));
+  }
+
+  // دالة محسّنة مع محاولات متعددة
+  Future<void> _autoFillFormWithRetry({int retryCount = 0}) async {
+    if (_username == null || _password == null) return;
+    
+    const maxRetries = 5;
+    if (retryCount >= maxRetries || _hasAutoFilled) return;
+
+    // Escape القيم بشكل أفضل
+    final escapedUsername = _username!
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r');
+    final escapedPassword = _password!
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r');
+
+    // JavaScript محسّن جداً لتعبئة الفورم - طريقة شاملة
+    final jsCode = '''
+      (function() {
+        try {
+          var usernameFilled = false;
+          var passwordFilled = false;
+          var username = '$escapedUsername';
+          var password = '$escapedPassword';
+          
+          // البحث عن جميع الحقول
+          var allInputs = document.querySelectorAll('input');
+          
+          for (var i = 0; i < allInputs.length; i++) {
+            var input = allInputs[i];
+            var type = (input.type || '').toLowerCase();
+            var name = (input.name || '').toLowerCase();
+            var id = (input.id || '').toLowerCase();
+            var placeholder = (input.placeholder || '').toLowerCase();
+            var className = (input.className || '').toLowerCase();
+            var autocomplete = (input.autocomplete || '').toLowerCase();
+            
+            // البحث عن حقل اسم المستخدم/الإيميل
+            if (!usernameFilled && (type === 'text' || type === 'email')) {
+              var isEmailField = 
+                name.includes('email') || name.includes('user') || name.includes('login') || name.includes('username') ||
+                id.includes('email') || id.includes('user') || id.includes('login') || id.includes('username') ||
+                placeholder.includes('email') || placeholder.includes('user') || placeholder.includes('login') ||
+                className.includes('email') || className.includes('user') || className.includes('login') ||
+                autocomplete.includes('email') || autocomplete.includes('username');
+              
+              if (isEmailField || (i === 0 && type === 'text')) {
+                input.value = username;
+                input.setAttribute('value', username);
+                input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                input.dispatchEvent(new Event('keyup', { bubbles: true, cancelable: true }));
+                input.dispatchEvent(new Event('keydown', { bubbles: true, cancelable: true }));
+                input.focus();
+                setTimeout(function() { input.blur(); }, 100);
+                usernameFilled = true;
+              }
+            }
+            
+            // البحث عن حقل كلمة المرور
+            if (!passwordFilled && type === 'password') {
+              input.value = password;
+              input.setAttribute('value', password);
+              input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+              input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+              input.dispatchEvent(new Event('keyup', { bubbles: true, cancelable: true }));
+              input.dispatchEvent(new Event('keydown', { bubbles: true, cancelable: true }));
+              passwordFilled = true;
+            }
+            
+            if (usernameFilled && passwordFilled) break;
+          }
+          
+          // إذا لم نجد الحقول بالطريقة العادية، نبحث في جميع الحقول النصية
+          if (!usernameFilled) {
+            var textInputs = document.querySelectorAll('input[type="text"], input[type="email"]');
+            if (textInputs.length > 0) {
+              var firstTextInput = textInputs[0];
+              firstTextInput.value = username;
+              firstTextInput.setAttribute('value', username);
+              firstTextInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+              firstTextInput.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+              usernameFilled = true;
+            }
+          }
+          
+          return usernameFilled && passwordFilled;
+        } catch (e) {
+          console.error('Auto-fill error: ' + e);
+          return false;
+        }
+      })();
+    ''';
+
+    try {
+      final result = await _controller.runJavaScriptReturningResult(jsCode);
+      
+      // إذا نجحت العملية
+      if (result.toString() == 'true') {
+        setState(() {
+          _hasAutoFilled = true;
+        });
+        return;
+      }
+      
+      // إذا فشلت، نحاول مرة أخرى بعد تأخير
+      if (retryCount < maxRetries - 1) {
+        await Future.delayed(Duration(milliseconds: 500 + (retryCount * 200)));
+        await _autoFillFormWithRetry(retryCount: retryCount + 1);
+      } else {
+        // محاولة أخيرة بالطريقة البديلة
+        await _tryAlternativeAutoFill();
+      }
+    } catch (e) {
+      // في حالة الخطأ، نحاول مرة أخرى
+      if (retryCount < maxRetries - 1) {
+        await Future.delayed(Duration(milliseconds: 500 + (retryCount * 200)));
+        await _autoFillFormWithRetry(retryCount: retryCount + 1);
+      } else {
+        await _tryAlternativeAutoFill();
+      }
+    }
+  }
+
+  Future<void> _tryAlternativeAutoFill() async {
+    if (_username == null || _password == null || _hasAutoFilled) return;
+
+    // Escape القيم بشكل أفضل
+    final escapedUsername = _username!
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r');
+    final escapedPassword = _password!
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r');
+
+    // طريقة بديلة: البحث في جميع الحقول
+    final alternativeJs = '''
+      (function() {
+        try {
+          var inputs = document.querySelectorAll('input');
+          var usernameFilled = false;
+          var passwordFilled = false;
+          
+          for (var i = 0; i < inputs.length; i++) {
+            var input = inputs[i];
+            var type = (input.type || '').toLowerCase();
+            var name = (input.name || '').toLowerCase();
+            var id = (input.id || '').toLowerCase();
+            var placeholder = (input.placeholder || '').toLowerCase();
+            var className = (input.className || '').toLowerCase();
+            
+            // البحث عن حقل اسم المستخدم (أول حقل نصي غير كلمة مرور)
+            if (!usernameFilled && (type === 'text' || type === 'email')) {
+              if (name.includes('user') || name.includes('email') || name.includes('login') || 
+                  id.includes('user') || id.includes('email') || id.includes('login') ||
+                  placeholder.includes('email') || placeholder.includes('user') ||
+                  className.includes('email') || className.includes('user') || className.includes('login') ||
+                  (i === 0 && type === 'text')) {
+                input.value = '$escapedUsername';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('blur', { bubbles: true }));
+                input.focus();
+                usernameFilled = true;
+              }
+            }
+            
+            // البحث عن حقل كلمة المرور
+            if (!passwordFilled && type === 'password') {
+              input.value = '$escapedPassword';
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+              input.dispatchEvent(new Event('blur', { bubbles: true }));
+              passwordFilled = true;
+            }
+            
+            if (usernameFilled && passwordFilled) break;
+          }
+          
+          return usernameFilled && passwordFilled;
+        } catch (e) {
+          return false;
+        }
+      })();
+    ''';
+
+    try {
+      final result = await _controller.runJavaScriptReturningResult(alternativeJs);
+      if (result.toString() == 'true') {
+        setState(() {
+          _hasAutoFilled = true;
+        });
+      }
+    } catch (e) {
+      // في حالة الفشل، لا نفعل شيء
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد تسجيل الخروج'),
+        content: const Text('هل تريد تسجيل الخروج؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('تسجيل الخروج'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await SessionManager.logout();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const LoginScreen(),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('مرحباً ${_username ?? "المستخدم"}'),
+        backgroundColor: const Color(0xFFA21955),
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'تسجيل الخروج',
+            onPressed: _handleLogout,
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            Container(
+              color: Colors.white,
+              child: Center(
+                child: LoadingAnimationWidget.discreteCircle(
+                  color: const Color(0xFFA21955),
+                  size: 60,
+                  secondRingColor: const Color(0xFF0099A3),
+                  thirdRingColor: Colors.white,
+                ),
+              ),
+            ),
+          // زر لتعبئة الفورم يدوياً (للاستخدام في حالة فشل التعبئة التلقائية)
+          if (!_isLoading && _username != null && _password != null && !_hasAutoFilled)
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: FloatingActionButton(
+                onPressed: () {
+                  _autoFillFormWithRetry();
+                },
+                backgroundColor: const Color(0xFFA21955),
+                tooltip: 'تعبئة الفورم',
+                child: const Icon(Icons.auto_fix_high, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
