@@ -36,7 +36,7 @@ class SessionManager {
     try {
       // التأكد من أن القيم غير فارغة
       if (username.isEmpty || password.isEmpty) {
-        throw Exception('اسم المستخدم وكلمة المرور مطلوبان');
+        throw Exception('Username and password are required');
       }
 
       // حفظ البيانات بشكل متسلسل للتأكد من الحفظ
@@ -57,7 +57,7 @@ class SessionManager {
       if (savedUsername != username ||
           savedPassword != password ||
           isLoggedIn != 'true') {
-        throw Exception('فشل التحقق من حفظ البيانات');
+        throw Exception('Failed to verify saved data');
       }
     } catch (e) {
       // في حالة الخطأ، حذف أي بيانات محفوظة جزئياً
@@ -209,6 +209,6 @@ class LockoutStatus {
   
   String get message {
     if (!isLocked) return '';
-    return 'تم قفل الحساب. حاول مرة أخرى بعد $remainingMinutes دقيقة';
+    return 'Account locked. Try again after $remainingMinutes minute(s).';
   }
 }

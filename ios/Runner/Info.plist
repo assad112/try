@@ -46,6 +46,6 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
-	<string>نحتاج إلى Face ID للتحقق من هويتك وتسجيل الدخول بشكل آمن</string>
+	<string>Face ID is needed to verify your identity and sign in securely.</string>
 </dict>
 </plist>

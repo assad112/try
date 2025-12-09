@@ -11,12 +11,12 @@ class BiometricAuthResult {
   const BiometricAuthResult({required this.success, this.code, this.message});
 }
 
-/// خدمة التعامل مع البصمة / Face ID
-/// تعتمد على البصمة الحقيقية المسجلة في الجهاز فقط (بدون PIN أو Pattern)
+/// Biometric/Face ID authentication service
+/// Uses only real registered biometric (no PIN or Pattern)
 class BiometricService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
-  /// دالة داخلية (خاصة): تتحقق إذا في نوع حقيقي من البصمة في الجهاز
+  /// Internal function: checks if a real biometric type exists on device
   static Future<bool> _hasRealBiometric() async {
     final List<BiometricType> availableBiometrics = await _auth
         .getAvailableBiometrics();
@@ -30,26 +30,26 @@ class BiometricService {
     );
     final hasFace = availableBiometrics.contains(BiometricType.face);
     final hasIris = availableBiometrics.contains(BiometricType.iris);
-    // strong / weak موجودة في الإصدارات الجديدة من local_auth
+    // strong/weak available in newer local_auth versions
     final hasStrong = availableBiometrics.contains(BiometricType.strong);
     final hasWeak = availableBiometrics.contains(BiometricType.weak);
 
-    // وجود أي نوع من هذه الأنواع يعني أن عند الجهاز بصمة حقيقية
+    // If any of these types exist, device has real biometric
     return hasFingerprint || hasFace || hasIris || hasStrong || hasWeak;
   }
 
-  /// التحقق هل البصمة (أو Face ID) متاحة وقابلة للاستخدام
+  /// Check if biometric (or Face ID) is available and usable
   static Future<bool> isAvailable() async {
     try {
-      // هل الجهاز أصلاً يدعم البصمة؟
+      // Does device support biometric?
       final bool isDeviceSupported = await _auth.isDeviceSupported();
       if (!isDeviceSupported) return false;
 
-      // هل يمكن فحص البصمة (مفعّلة في الإعدادات)؟
+      // Can check biometric (enabled in settings)?
       final bool canCheckBiometrics = await _auth.canCheckBiometrics;
       if (!canCheckBiometrics) return false;
 
-      // هل يوجد نوع حقيقي من البصمة مسجل؟
+      // Is a real biometric type registered?
       final bool hasRealBiometric = await _hasRealBiometric();
       if (!hasRealBiometric) return false;
 
@@ -61,7 +61,7 @@ class BiometricService {
     }
   }
 
-  /// إرجاع أنواع البصمة المتاحة (للاستخدام في الـ Debug أو معلومات إضافية)
+  /// Returns available biometric types (for debugging or additional info)
   static Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _auth.getAvailableBiometrics();
@@ -70,8 +70,8 @@ class BiometricService {
     }
   }
 
-  /// فحص شامل لحالة البصمة (للاختبار والتشخيص)
-  /// يرجع معلومات مفصلة عن حالة البصمة في الجهاز
+  /// Complete biometric status check (for testing and diagnostics)
+  /// Returns detailed information about biometric status on device
   static Future<Map<String, dynamic>> checkBiometricStatus() async {
     final Map<String, dynamic> status = {
       'isDeviceSupported': false,
@@ -83,22 +83,22 @@ class BiometricService {
     };
 
     try {
-      // فحص دعم الجهاز
+      // Check device support
       status['isDeviceSupported'] = await _auth.isDeviceSupported();
 
-      // فحص إمكانية التحقق
+      // Check verification capability
       status['canCheckBiometrics'] = await _auth.canCheckBiometrics;
 
-      // الحصول على أنواع البصمة المتاحة
+      // Get available biometric types
       final biometrics = await _auth.getAvailableBiometrics();
       status['availableBiometrics'] = biometrics
           .map((b) => b.toString())
           .toList();
 
-      // فحص وجود بصمة حقيقية
+      // Check for real biometric
       status['hasRealBiometric'] = await _hasRealBiometric();
 
-      // الحالة النهائية
+      // Final status
       status['isAvailable'] = await isAvailable();
     } on PlatformException catch (e) {
       status['error'] = 'PlatformException: ${e.message}';
@@ -109,66 +109,67 @@ class BiometricService {
     return status;
   }
 
-  /// تنفيذ مصادقة البصمة/Face ID مع إرجاع تفاصيل الخطأ إن وجدت
+  /// Perform biometric/Face ID authentication with detailed error info
   static Future<BiometricAuthResult> authenticate() async {
     try {
-      // فحص متكامل قبل إظهار شاشة البصمة
+      // Complete check before showing biometric screen
       final bool available = await isAvailable();
       if (!available) {
         return const BiometricAuthResult(
           success: false,
           code: 'NotAvailable',
-          message: 'البصمة غير متاحة على هذا الجهاز أو غير مفعّلة',
+          message: 'Biometrics are not available or enabled on this device.',
         );
       }
 
-      // تحديد نوع البصمة للرسالة التي ستظهر للمستخدم
+      // Determine biometric type for user message
       final availableBiometrics = await _auth.getAvailableBiometrics();
-      String biometricLabel = 'البصمة';
+      String biometricLabel = 'biometric';
 
       if (availableBiometrics.contains(BiometricType.face)) {
         biometricLabel = 'Face ID';
       } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
-        biometricLabel = 'البصمة';
+        biometricLabel = 'fingerprint';
       } else if (availableBiometrics.contains(BiometricType.iris)) {
-        biometricLabel = 'البصمة';
+        biometricLabel = 'iris scan';
       }
 
-      // عرض شاشة البصمة الرسمية من النظام
+      // Show official biometric screen from system
       final bool didAuthenticate = await _auth.authenticate(
         localizedReason:
-            'يرجى استخدام $biometricLabel المحفوظة في جهازك للتحقق من هويتك وتسجيل الدخول',
+            'Please use your registered $biometricLabel to verify your identity and sign in.',
         options: const AuthenticationOptions(
-          biometricOnly: true, // يمنع استخدام PIN أو Pattern
-          stickyAuth: true, // يستمر في المحاولة عند الرجوع من الخلفية
-          useErrorDialogs: true, // يعرض رسائل الخطأ الافتراضية من النظام
+          biometricOnly: true, // Prevents PIN or Pattern use
+          stickyAuth: true, // Continues trying if returning from background
+          useErrorDialogs: true, // Shows default system error messages
         ),
       );
 
       return BiometricAuthResult(success: didAuthenticate);
     } on PlatformException catch (e) {
-      String readableMessage = 'فشل التحقق من البصمة. حاول مرة أخرى.';
+      String readableMessage =
+          'Biometric verification failed. Please try again.';
 
       switch (e.code) {
         case auth_error.notEnrolled:
           readableMessage =
-              'لا توجد بصمة مسجلة. يرجى إضافة بصمة من إعدادات الجهاز.';
+              'No biometric is enrolled. Please add one in device settings.';
           break;
         case auth_error.passcodeNotSet:
           readableMessage =
-              'يجب تفعيل قفل الشاشة/البصمة في إعدادات الجهاز أولاً.';
+              'A device lock/biometric must be enabled in settings first.';
           break;
         case auth_error.lockedOut:
           readableMessage =
-              'تم قفل مستشعر البصمة مؤقتاً بعد محاولات فاشلة. حاول لاحقاً أو استخدم تسجيل الدخول العادي.';
+              'Biometric sensor temporarily locked after failed attempts. Try later or use normal login.';
           break;
         case auth_error.permanentlyLockedOut:
           readableMessage =
-              'تم قفل البصمة نهائياً. افتح القفل من إعدادات الجهاز ثم جرّب مجدداً.';
+              'Biometrics permanently locked. Unlock in settings, then try again.';
           break;
         default:
           readableMessage =
-              'تعذّر استخدام البصمة (${e.code}). يمكنك المحاولة مرة أخرى أو استخدام تسجيل الدخول العادي.';
+              'Biometrics unavailable (${e.code}). Try again or use normal login.';
       }
 
       return BiometricAuthResult(
@@ -180,7 +181,7 @@ class BiometricService {
       return BiometricAuthResult(
         success: false,
         code: 'unknown_error',
-        message: 'تعذر التحقق بالبصمة: $e',
+        message: 'Biometric verification failed: $e',
       );
     }
   }

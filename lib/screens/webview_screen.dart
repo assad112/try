@@ -349,16 +349,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تأكيد تسجيل الخروج'),
-        content: const Text('هل تريد تسجيل الخروج؟'),
+        title: const Text('Confirm logout'),
+        content: const Text('Do you want to log out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('تسجيل الخروج'),
+            child: const Text('Log out'),
           ),
         ],
       ),
@@ -382,13 +382,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('مرحباً ${_username ?? "المستخدم"}'),
+        title: const Text('Jeel ERP'),
+        centerTitle: true,
         backgroundColor: const Color(0xFFA21955),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'تسجيل الخروج',
+            tooltip: 'Log out',
             onPressed: _handleLogout,
           ),
         ],
@@ -418,7 +419,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   _autoFillFormWithRetry();
                 },
                 backgroundColor: const Color(0xFFA21955),
-                tooltip: 'تعبئة الفورم',
+                tooltip: 'Fill form',
                 child: const Icon(Icons.auto_fix_high, color: Colors.white),
               ),
             ),

@@ -35,15 +35,15 @@ class _LoginScreenState extends State<LoginScreen> {
     _initialSetup();
   }
 
-  /// تهيئة أولية:
-  /// 1) التحقق من توفر البصمة
-  /// 2) التحقق من صلاحية الجلسة
-  /// 3) إذا في جلسة صالحة + البصمة متاحة → تشغيل البصمة تلقائياً
-  /// ملاحظة: البيانات لا تُملأ إلا بعد نجاح التحقق من البصمة
+  /// Initial setup:
+  /// 1) Check biometric availability
+  /// 2) Check session validity
+  /// 3) If valid session + biometric available → trigger biometric automatically
+  /// Note: Data is filled only after successful biometric verification
   Future<void> _initialSetup() async {
     await _checkBiometricAvailability();
     
-    // تحميل تفضيل "تذكرني"
+    // Load "Remember Me" preference
     final rememberMe = await SessionManager.getRememberMe();
     if (mounted) {
       setState(() {
@@ -51,13 +51,13 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
 
-    // التحقق من صلاحية الجلسة
+    // Check session validity
     final isSessionValid = await SessionManager.isSessionValid();
 
     if (mounted && isSessionValid && _isBiometricAvailable && _rememberMe) {
       await _handleBiometricLogin();
     } else if (isSessionValid == false) {
-      // الجلسة منتهية، حذف البيانات
+      // Session expired, logout
       await SessionManager.logout();
     }
   }
@@ -70,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // تم إلغاء هذه الدالة - البيانات الآن تُملأ فقط بعد نجاح البصمة
+  // This function was removed - data is now filled only after successful biometric verification
   // Future<void> _loadSavedCredentials() async {
   //   final username = await SessionManager.getUsername();
   //   final password = await SessionManager.getPassword();
@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    // التحقق من القفل
+    // Check lockout status
     final lockoutStatus = await SessionManager.checkLockoutStatus();
     if (lockoutStatus.isLocked) {
       if (mounted) {
@@ -108,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     
-    // مسح الأخطاء السابقة
+    // Clear previous errors
     setState(() {
       _emailError = null;
       _passwordError = null;
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // التحقق من البيانات
+    // Validate data
     final emailError = Validators.validateEmail(email);
     final passwordError = Validators.validatePassword(password);
     
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      AppLogger.info('بدء عملية تسجيل الدخول', email);
+      AppLogger.info('Starting login process', email);
       
       // حفظ تفضيل "تذكرني"
       await SessionManager.setRememberMe(_rememberMe);
@@ -168,13 +168,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       } else {
-        throw Exception('فشل في حفظ البيانات');
+        throw Exception('Failed to save data');
       }
     } catch (e) {
       // تسجيل محاولة فاشلة
       await SessionManager.recordFailedAttempt();
       AppLogger.logLoginAttempt(email, false);
-      AppLogger.error('فشل تسجيل الدخول', e);
+      AppLogger.error('Login failed', e);
       
       final remaining = await SessionManager.getRemainingAttempts();
       
@@ -183,9 +183,9 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
       
-      String errorMessage = 'حدث خطأ: $e';
+      String errorMessage = 'An error occurred: $e';
       if (remaining > 0 && remaining <= 3) {
-        errorMessage += '\nعدد المحاولات المتبقية: $remaining';
+        errorMessage += '\nRemaining attempts: $remaining';
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(
-          'تفعيل البصمة',
+          'Enable biometrics',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: SingleChildScrollView(
@@ -213,15 +213,15 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'لاستخدام البصمة لتسجيل الدخول، اتبع الخطوات التالية:',
+                'To use biometrics for login, follow these steps:',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
               const SizedBox(height: 12),
-              _buildGuideStep('1', 'افتح إعدادات الهاتف'),
-              _buildGuideStep('2', 'اختر "الأمان" أو "القفل والأمان"'),
-              _buildGuideStep('3', 'فعّل "قفل الشاشة" (نقش/PIN/كلمة مرور)'),
-              _buildGuideStep('4', 'سجّل بصمتك في قسم "البصمات"'),
-              _buildGuideStep('5', 'أعد فتح التطبيق، سيظهر زر البصمة تلقائياً'),
+              _buildGuideStep('1', 'Open phone settings'),
+              _buildGuideStep('2', 'Choose "Security" or "Lock & security"'),
+              _buildGuideStep('3', 'Enable a screen lock (pattern/PIN/password)'),
+              _buildGuideStep('4', 'Register your fingerprint/Face ID'),
+              _buildGuideStep('5', 'Reopen the app; the biometric button appears'),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -236,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'البصمة المستخدمة هي نفسها التي تفتح قفل شاشة الهاتف',
+                        'Biometrics used here are the same as your device screen lock',
                         style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
                       ),
                     ),
@@ -249,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('حسناً'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -297,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('لا توجد بيانات محفوظة. يرجى تسجيل الدخول أولاً'),
+            content: Text('No saved credentials. Please log in first.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -311,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'البصمة غير متاحة. يرجى التأكد من تفعيل البصمة في إعدادات الجهاز',
+              'Biometrics are unavailable. Please enable them in device settings.',
             ),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
@@ -328,7 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      AppLogger.info('محاولة التحقق من البصمة');
+      AppLogger.info('Attempting biometric authentication');
       final result = await BiometricService.authenticate();
 
       if (!result.success) {
@@ -342,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text(
               result.message ??
-                  'فشل التحقق من البصمة. يرجى المحاولة مرة أخرى أو استخدام تسجيل الدخول العادي',
+                  'Biometric verification failed. Please try again or use normal login.',
             ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
@@ -372,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('لا توجد بيانات محفوظة'),
+            content: Text('No saved credentials found.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -394,7 +394,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await _handleLoginAfterBiometric(username, password);
       }
     } catch (e) {
-      AppLogger.error('خطأ في التحقق من البصمة', e);
+      AppLogger.error('Biometric verification error', e);
       if (!mounted) return;
       setState(() {
         _isBiometricLoading = false;
@@ -403,7 +403,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'حدث خطأ أثناء التحقق من البصمة. يمكنك استخدام زر "Log in" لتسجيل الدخول',
+            'An error occurred during biometric verification. You can use "Log in" instead.',
           ),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 4),
@@ -420,7 +420,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      AppLogger.info('تسجيل دخول تلقائي بعد البصمة', email);
+      AppLogger.info('Automatic login after biometrics', email);
       
       // حفظ البيانات (تم حفظها مسبقاً، لكن للتأكد)
       await SessionManager.saveLoginInfo(email, password);
@@ -443,7 +443,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       await SessionManager.recordFailedAttempt();
       AppLogger.logLoginAttempt(email, false);
-      AppLogger.error('فشل التسجيل التلقائي', e);
+      AppLogger.error('Automatic login failed', e);
       
       if (!mounted) return;
       setState(() {
@@ -453,7 +453,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('خطأ في التسجيل التلقائي: $e'),
+          content: Text('Auto login error: $e'),
           backgroundColor: AppConstants.errorColor,
           duration: AppConstants.snackBarLongDuration,
         ),
@@ -561,7 +561,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'البصمة غير مفعّلة',
+                                    'Biometrics are disabled',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -570,7 +570,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'لتسجيل دخول أسرع وأكثر أماناً، فعّل البصمة على جهازك',
+                                    'For faster and more secure login, enable biometrics on your device.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.orange.shade800,
@@ -582,7 +582,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             IconButton(
                               icon: Icon(Icons.help_outline, color: Colors.orange.shade700),
                               onPressed: _showBiometricSetupGuide,
-                              tooltip: 'كيف أفعّل البصمة؟',
+                              tooltip: 'How to enable biometrics?',
                             ),
                           ],
                         ),
@@ -603,7 +603,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'البصمة مفعّلة ✓ يمكنك استخدام زر البصمة أدناه لتسجيل دخول سريع',
+                                'Biometrics enabled ✓ You can use the biometric button below for quick login.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.green.shade800,
@@ -755,7 +755,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                           child: const Text(
-                            'تذكرني واستخدام البصمة',
+                            'Remember me and use biometrics',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.black87,
