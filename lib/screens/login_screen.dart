@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:local_auth/error_codes.dart' as auth_error;
+
 import '../services/session_manager.dart';
 import '../services/biometric_service.dart';
+import '../utils/biometric_checker.dart';
+import '../utils/validators.dart';
+import '../utils/app_constants.dart';
+import '../utils/app_logger.dart';
 import 'webview_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,35 +20,70 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   bool _isLoading = false;
   bool _isBiometricAvailable = false;
   bool _isBiometricLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = true;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void initState() {
     super.initState();
-    _checkBiometricAvailability();
-    _loadSavedCredentials();
+    _initialSetup();
+  }
+
+  /// تهيئة أولية:
+  /// 1) التحقق من توفر البصمة
+  /// 2) التحقق من صلاحية الجلسة
+  /// 3) إذا في جلسة صالحة + البصمة متاحة → تشغيل البصمة تلقائياً
+  /// ملاحظة: البيانات لا تُملأ إلا بعد نجاح التحقق من البصمة
+  Future<void> _initialSetup() async {
+    await _checkBiometricAvailability();
+    
+    // تحميل تفضيل "تذكرني"
+    final rememberMe = await SessionManager.getRememberMe();
+    if (mounted) {
+      setState(() {
+        _rememberMe = rememberMe;
+      });
+    }
+
+    // التحقق من صلاحية الجلسة
+    final isSessionValid = await SessionManager.isSessionValid();
+
+    if (mounted && isSessionValid && _isBiometricAvailable && _rememberMe) {
+      await _handleBiometricLogin();
+    } else if (isSessionValid == false) {
+      // الجلسة منتهية، حذف البيانات
+      await SessionManager.logout();
+    }
   }
 
   Future<void> _checkBiometricAvailability() async {
     final isAvailable = await BiometricService.isAvailable();
+    if (!mounted) return;
     setState(() {
       _isBiometricAvailable = isAvailable;
     });
   }
 
-  Future<void> _loadSavedCredentials() async {
-    final username = await SessionManager.getUsername();
-    final password = await SessionManager.getPassword();
-    if (username != null && password != null) {
-      setState(() {
-        _emailController.text = username;
-        _passwordController.text = password;
-      });
-    }
-  }
+  // تم إلغاء هذه الدالة - البيانات الآن تُملأ فقط بعد نجاح البصمة
+  // Future<void> _loadSavedCredentials() async {
+  //   final username = await SessionManager.getUsername();
+  //   final password = await SessionManager.getPassword();
+  //
+  //   if (!mounted) return;
+  //
+  //   if (username != null && password != null) {
+  //     setState(() {
+  //       _emailController.text = username;
+  //       _passwordController.text = password;
+  //     });
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -52,18 +93,39 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
+    // التحقق من القفل
+    final lockoutStatus = await SessionManager.checkLockoutStatus();
+    if (lockoutStatus.isLocked) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('يرجى إدخال البريد الإلكتروني وكلمة المرور'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: Text(lockoutStatus.message),
+            backgroundColor: AppConstants.errorColor,
+            duration: AppConstants.snackBarLongDuration,
           ),
         );
       }
+      return;
+    }
+    
+    // مسح الأخطاء السابقة
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+    
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // التحقق من البيانات
+    final emailError = Validators.validateEmail(email);
+    final passwordError = Validators.validatePassword(password);
+    
+    if (emailError != null || passwordError != null) {
+      setState(() {
+        _emailError = emailError;
+        _passwordError = passwordError;
+      });
       return;
     }
 
@@ -72,41 +134,161 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await SessionManager.saveLoginInfo(email, password);
+      AppLogger.info('بدء عملية تسجيل الدخول', email);
+      
+      // حفظ تفضيل "تذكرني"
+      await SessionManager.setRememberMe(_rememberMe);
+      
+      // حفظ بيانات الدخول في التخزين الآمن (إذا كان تضكرني مفعل)
+      if (_rememberMe) {
+        await SessionManager.saveLoginInfo(email, password);
+        await SessionManager.updateLastLogin();
+      }
+      
       await Future.delayed(const Duration(milliseconds: 200));
 
       final savedUsername = await SessionManager.getUsername();
       final savedPassword = await SessionManager.getPassword();
       final isLoggedIn = await SessionManager.isLoggedIn();
 
-      if (savedUsername == email && savedPassword == password && isLoggedIn) {
+      if ((_rememberMe && savedUsername == email && savedPassword == password && isLoggedIn) || !_rememberMe) {
+        // إعادة تعيين المحاولات الفاشلة عند النجاح
+        await SessionManager.resetFailedAttempts();
+        AppLogger.logLoginAttempt(email, true);
+        
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
 
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const WebViewScreen(shouldAutoFill: false),
-            ),
-          );
-        }
+        // الانتقال إلى الـ WebView بدون تعبئة تلقائية (تسجيل دخول عادي)
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const WebViewScreen(shouldAutoFill: false),
+          ),
+        );
       } else {
         throw Exception('فشل في حفظ البيانات');
       }
     } catch (e) {
+      // تسجيل محاولة فاشلة
+      await SessionManager.recordFailedAttempt();
+      AppLogger.logLoginAttempt(email, false);
+      AppLogger.error('فشل تسجيل الدخول', e);
+      
+      final remaining = await SessionManager.getRemainingAttempts();
+      
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('حدث خطأ: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      
+      String errorMessage = 'حدث خطأ: $e';
+      if (remaining > 0 && remaining <= 3) {
+        errorMessage += '\nعدد المحاولات المتبقية: $remaining';
       }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppConstants.errorColor,
+          duration: AppConstants.snackBarLongDuration,
+        ),
+      );
     }
+  }
+
+  /// دليل إرشادي لتفعيل البصمة
+  void _showBiometricSetupGuide() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'تفعيل البصمة',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'لاستخدام البصمة لتسجيل الدخول، اتبع الخطوات التالية:',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              _buildGuideStep('1', 'افتح إعدادات الهاتف'),
+              _buildGuideStep('2', 'اختر "الأمان" أو "القفل والأمان"'),
+              _buildGuideStep('3', 'فعّل "قفل الشاشة" (نقش/PIN/كلمة مرور)'),
+              _buildGuideStep('4', 'سجّل بصمتك في قسم "البصمات"'),
+              _buildGuideStep('5', 'أعد فتح التطبيق، سيظهر زر البصمة تلقائياً'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'البصمة المستخدمة هي نفسها التي تفتح قفل شاشة الهاتف',
+                        style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('حسناً'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideStep(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0099A3),
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleBiometricLogin() async {
@@ -123,34 +305,109 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() {
-      _isBiometricLoading = true;
-    });
-
-    try {
-      await BiometricService.authenticate();
-    } catch (_) {}
-
-    final username = await SessionManager.getUsername();
-    final password = await SessionManager.getPassword();
-
-    if (username == null || password == null) {
-      setState(() {
-        _isBiometricLoading = false;
-      });
+    final isBiometricAvailable = await BiometricService.isAvailable();
+    if (!isBiometricAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'البصمة غير متاحة. يرجى التأكد من تفعيل البصمة في إعدادات الجهاز',
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
       return;
     }
 
-    setState(() {
-      _emailController.text = username;
-      _passwordController.text = password;
-      _isBiometricLoading = false;
-    });
-
     if (mounted) {
+      setState(() {
+        _isBiometricLoading = true;
+      });
+    }
+
+    try {
+      AppLogger.info('محاولة التحقق من البصمة');
+      final result = await BiometricService.authenticate();
+
+      if (!result.success) {
+        AppLogger.logBiometricAttempt(false);
+        if (!mounted) return;
+        setState(() {
+          _isBiometricLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.message ??
+                  'فشل التحقق من البصمة. يرجى المحاولة مرة أخرى أو استخدام تسجيل الدخول العادي',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // إذا كان المستشعر مقفلاً نهائياً أو مؤقتاً، أوقف زر البصمة حتى لا يضلل المستخدم
+        if (result.code == auth_error.permanentlyLockedOut ||
+            result.code == auth_error.lockedOut) {
+          setState(() {
+            _isBiometricAvailable = false;
+          });
+        }
+        return;
+      }
+
+      // عند نجاح البصمة
+      AppLogger.logBiometricAttempt(true);
+      final username = await SessionManager.getUsername();
+      final password = await SessionManager.getPassword();
+
+      if (!mounted) return;
+
+      if (username == null || password == null) {
+        setState(() {
+          _isBiometricLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('لا توجد بيانات محفوظة'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
+      // تحديث آخر دخول
+      await SessionManager.updateLastLogin();
+
+      setState(() {
+        _emailController.text = username;
+        _passwordController.text = password;
+        _isBiometricLoading = false;
+      });
+
+      // الانتقال إلى WebView مع تفعيل تعبئة الفورم تلقائياً
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => const WebViewScreen(shouldAutoFill: true),
+        ),
+      );
+    } catch (e) {
+      AppLogger.error('خطأ في التحقق من البصمة', e);
+      if (!mounted) return;
+      setState(() {
+        _isBiometricLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'حدث خطأ أثناء التحقق من البصمة. يمكنك استخدام زر "Log in" لتسجيل الدخول',
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
         ),
       );
     }
@@ -167,7 +424,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: const Color(0xFFA21955), // Magenta
+              color: const Color(0xFFA21955),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -183,12 +440,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     right: 0,
                     child: IconButton(
                       icon: const Icon(Icons.more_vert, color: Colors.white),
-                      onPressed: () {},
+                      onPressed: () {
+                        BiometricChecker.showBiometricDialog(context);
+                      },
                     ),
                   ),
                 ],
               ),
             ),
+
             // صورة JeeEngineering.png ملاصقة للـ AppBar
             Container(
               width: double.infinity,
@@ -207,7 +467,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 40,
                         color: Colors.grey.shade200,
                         child: const Center(
-                          child: Icon(Icons.image, size: 30, color: Colors.grey),
+                          child: Icon(
+                            Icons.image,
+                            size: 30,
+                            color: Colors.grey,
+                          ),
                         ),
                       );
                     },
@@ -220,6 +484,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
+
             // محتوى الصفحة
             Expanded(
               child: SingleChildScrollView(
@@ -227,7 +492,82 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
+
+                    // تنبيه البصمة
+                    if (!_isBiometricAvailable)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.fingerprint_outlined, color: Colors.orange.shade700, size: 28),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'البصمة غير مفعّلة',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'لتسجيل دخول أسرع وأكثر أماناً، فعّل البصمة على جهازك',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.orange.shade800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.help_outline, color: Colors.orange.shade700),
+                              onPressed: _showBiometricSetupGuide,
+                              tooltip: 'كيف أفعّل البصمة؟',
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    if (_isBiometricAvailable)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green.shade700, size: 24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'البصمة مفعّلة ✓ يمكنك استخدام زر البصمة أدناه لتسجيل دخول سريع',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 8),
+
                     // حقل Email
                     const Text(
                       'Email',
@@ -246,13 +586,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintStyle: TextStyle(color: Colors.grey.shade400),
                         filled: true,
                         fillColor: Colors.white,
+                        errorText: _emailError,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: BorderSide(color: _emailError != null ? AppConstants.errorColor : Colors.grey.shade300),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -267,8 +608,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 20),
-                    // حقل Password مع رابط Reset Password
+
+                    // حقل Password + Reset Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -307,13 +650,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintStyle: TextStyle(color: Colors.grey.shade400),
                         filled: true,
                         fillColor: Colors.white,
+                        errorText: _passwordError,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: BorderSide(color: _passwordError != null ? AppConstants.errorColor : Colors.grey.shade300),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -341,7 +685,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+
+                    const SizedBox(height: 16),
+                    
+                    // خيار "تذكرني"
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _rememberMe,
+                          onChanged: (value) {
+                            setState(() {
+                              _rememberMe = value ?? true;
+                            });
+                          },
+                          activeColor: AppConstants.secondaryColor,
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _rememberMe = !_rememberMe;
+                            });
+                          },
+                          child: const Text(
+                            'تذكرني واستخدام البصمة',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // زر Log in
                     SizedBox(
                       width: double.infinity,
@@ -372,12 +749,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                     ),
+
                     // أيقونة البصمة
                     if (_isBiometricAvailable) ...[
                       const SizedBox(height: 60),
                       Center(
                         child: GestureDetector(
-                          onTap: _isBiometricLoading ? null : _handleBiometricLogin,
+                          onTap: _isBiometricLoading
+                              ? null
+                              : _handleBiometricLogin,
                           child: Container(
                             width: 80,
                             height: 80,
@@ -386,7 +766,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: const Color(0xFF0099A3),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF0099A3).withValues(alpha: 0.3),
+                                  color: const Color(
+                                    0xFF0099A3,
+                                  ).withOpacity(0.3), // ← تم التعديل هنا
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 ),
@@ -394,12 +776,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: _isBiometricLoading
                                 ? Center(
-                                    child: LoadingAnimationWidget.discreteCircle(
-                                      color: Colors.white,
-                                      size: 30,
-                                      secondRingColor: const Color(0xFF0099A3),
-                                      thirdRingColor: Colors.white,
-                                    ),
+                                    child:
+                                        LoadingAnimationWidget.discreteCircle(
+                                          color: Colors.white,
+                                          size: 30,
+                                          secondRingColor: const Color(
+                                            0xFF0099A3,
+                                          ),
+                                          thirdRingColor: Colors.white,
+                                        ),
                                   )
                                 : const Icon(
                                     Icons.fingerprint,
@@ -414,6 +799,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+
             // Footer أسود
             Container(
               width: double.infinity,
@@ -421,22 +807,13 @@ class _LoginScreenState extends State<LoginScreen> {
               color: Colors.black87,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.white70),
-                    onPressed: () {},
-                  ),
-                  const Text(
+                children: const [
+                  Icon(Icons.menu, color: Colors.white70),
+                  Text(
                     'Copyright © Jeel',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_forward, color: Colors.white70),
-                    onPressed: () {},
-                  ),
+                  Icon(Icons.arrow_forward, color: Colors.white70),
                 ],
               ),
             ),

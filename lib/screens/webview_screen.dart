@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../services/session_manager.dart';
+import '../utils/app_logger.dart';
 import 'login_screen.dart';
 
 class WebViewScreen extends StatefulWidget {
@@ -326,6 +327,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
 
     if (confirm == true) {
+        final username = _username;
+        AppLogger.logLogout(username);
       await SessionManager.logout();
       if (mounted) {
         Navigator.of(context).pushReplacement(

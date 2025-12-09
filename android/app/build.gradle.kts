@@ -24,10 +24,11 @@ android {
         applicationId = "com.example.try1"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // Minimum SDK for biometric authentication support
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue("string", "no_fragment_activity", "")
     }
 
     buildTypes {
@@ -37,6 +38,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    implementation("androidx.biometric:biometric:1.1.0")
 }
 
 flutter {

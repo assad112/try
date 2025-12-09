@@ -15,4 +15,7 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    
+    <!-- Resource required by local_auth for biometric authentication -->
+    <string name="no_fragment_activity">com.example.try1.MainActivity</string>
 </resources>

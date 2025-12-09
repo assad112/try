@@ -49,52 +49,88 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkLoginStatus() async {
     // انتظار قصير لعرض شاشة البداية
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 800));
 
+    if (!mounted) return;
+
+    // ========== التحقق من وجود بيانات دخول محفوظة ==========
+    // إذا كانت هناك بيانات محفوظة من تسجيل الدخول الطبيعي السابق
+    // سيتم تفعيل البصمة تلقائياً
     final isLoggedIn = await SessionManager.isLoggedIn();
 
-    if (mounted) {
-      if (isLoggedIn) {
-        // إذا كان هناك جلسة محفوظة، التحقق من البصمة أولاً
-        final isBiometricAvailable = await BiometricService.isAvailable();
+    if (!mounted) return;
 
-        if (isBiometricAvailable) {
-          // محاولة المصادقة البيومترية
-          try {
-            final authenticated = await BiometricService.authenticate();
+    if (isLoggedIn) {
+      // ========== تفعيل البصمة تلقائياً ==========
+      // إذا كانت هناك بيانات محفوظة، يتم تفعيل البصمة تلقائياً
+      // المستخدم لا يحتاج إلى إدخال البيانات مرة أخرى
+      await _handleBiometricAuthentication();
+    } else {
+      // إذا لم تكن هناك بيانات محفوظة، الانتقال إلى صفحة تسجيل الدخول
+      // المستخدم يحتاج إلى تسجيل الدخول الطبيعي أولاً
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    }
+  }
 
-            if (authenticated && mounted) {
-              // إذا نجحت البصمة، الانتقال إلى WebView مع تفعيل تعبئة الفورم
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const WebViewScreen(shouldAutoFill: true),
-                ),
-              );
-            } else if (mounted) {
-              // إذا فشلت البصمة أو ألغاها المستخدم، العودة إلى صفحة تسجيل الدخول
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            }
-          } catch (e) {
-            // في حالة حدوث خطأ، الانتقال إلى صفحة تسجيل الدخول
-            if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            }
+  Future<void> _handleBiometricAuthentication() async {
+    try {
+      // ========== تفعيل البصمة تلقائياً ==========
+      // عند فتح التطبيق، إذا كانت هناك بيانات محفوظة
+      // يتم تفعيل البصمة تلقائياً بدون الحاجة لإدخال البيانات
+      final isBiometricAvailable = await BiometricService.isAvailable();
+
+      if (!mounted) return;
+
+      if (isBiometricAvailable) {
+        // طلب البصمة/Face ID الحقيقية مباشرة عند فتح التطبيق
+        try {
+          final result = await BiometricService.authenticate();
+
+          if (!mounted) return;
+
+          if (result.success) {
+            // ========== عند نجاح البصمة الحقيقية ==========
+            // البيانات محفوظة في الهاتف، والبصمة نجحت
+            // الانتقال مباشرة إلى WebView مع تفعيل تعبئة الفورم تلقائياً
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) =>
+                    const WebViewScreen(shouldAutoFill: true),
+              ),
+            );
+          } else {
+            // إذا فشلت البصمة أو ألغاها المستخدم
+            // العودة إلى صفحة تسجيل الدخول (البيانات لا تزال محفوظة)
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
           }
-        } else if (mounted) {
-          // إذا لم تكن البصمة متاحة، الانتقال مباشرة إلى WebView
+        } catch (e) {
+          // في حالة حدوث خطأ، الانتقال إلى صفحة تسجيل الدخول
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          }
+        }
+      } else {
+        // إذا لم تكن البصمة متاحة على الجهاز
+        // الانتقال مباشرة إلى WebView (البيانات محفوظة)
+        if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => const WebViewScreen(shouldAutoFill: false),
             ),
           );
         }
-      } else if (mounted) {
-        // إذا لم تكن هناك جلسة، الانتقال إلى صفحة تسجيل الدخول
+      }
+    } catch (e) {
+      // في حالة حدوث خطأ عام، الانتقال إلى صفحة تسجيل الدخول
+      if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
