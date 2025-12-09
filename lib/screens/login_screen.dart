@@ -382,18 +382,17 @@ class _LoginScreenState extends State<LoginScreen> {
       // تحديث آخر دخول
       await SessionManager.updateLastLogin();
 
+      // تسجيل دخول تلقائي بعد نجاح البصمة
       setState(() {
         _emailController.text = username;
         _passwordController.text = password;
-        _isBiometricLoading = false;
       });
 
-      // الانتقال إلى WebView مع تفعيل تعبئة الفورم تلقائياً
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const WebViewScreen(shouldAutoFill: true),
-        ),
-      );
+      // محاكاة الضغط على زر Log in تلقائياً
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) {
+        await _handleLoginAfterBiometric(username, password);
+      }
     } catch (e) {
       AppLogger.error('خطأ في التحقق من البصمة', e);
       if (!mounted) return;
@@ -408,6 +407,55 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  /// دالة تسجيل الدخول التلقائي بعد نجاح البصمة
+  Future<void> _handleLoginAfterBiometric(String email, String password) async {
+    setState(() {
+      _isLoading = true;
+      _isBiometricLoading = false;
+    });
+
+    try {
+      AppLogger.info('تسجيل دخول تلقائي بعد البصمة', email);
+      
+      // حفظ البيانات (تم حفظها مسبقاً، لكن للتأكد)
+      await SessionManager.saveLoginInfo(email, password);
+      await SessionManager.updateLastLogin();
+      await SessionManager.resetFailedAttempts();
+      
+      AppLogger.logLoginAttempt(email, true);
+      
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+
+      // الانتقال إلى WebView مع تفعيل تعبئة الفورم تلقائياً
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const WebViewScreen(shouldAutoFill: true),
+        ),
+      );
+    } catch (e) {
+      await SessionManager.recordFailedAttempt();
+      AppLogger.logLoginAttempt(email, false);
+      AppLogger.error('فشل التسجيل التلقائي', e);
+      
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _isBiometricLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في التسجيل التلقائي: $e'),
+          backgroundColor: AppConstants.errorColor,
+          duration: AppConstants.snackBarLongDuration,
         ),
       );
     }

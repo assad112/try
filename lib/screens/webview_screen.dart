@@ -98,7 +98,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..loadRequest(Uri.parse('https://erp.jeel.om/'));
   }
 
-  // دالة محسّنة مع محاولات متعددة
+  // دالة محسّنة مع محاولات متعددة وضغط زر Log in تلقائياً
   Future<void> _autoFillFormWithRetry({int retryCount = 0}) async {
     if (_username == null || _password == null) return;
     
@@ -119,7 +119,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         .replaceAll('\n', '\\n')
         .replaceAll('\r', '\\r');
 
-    // JavaScript محسّن جداً لتعبئة الفورم - طريقة شاملة
+    // JavaScript محسّن لتعبئة الفورم وضغط زر تسجيل الدخول تلقائياً
     final jsCode = '''
       (function() {
         try {
@@ -187,6 +187,44 @@ class _WebViewScreenState extends State<WebViewScreen> {
               firstTextInput.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
               usernameFilled = true;
             }
+          }
+          
+          // إذا تم تعبئة الحقول، نضغط على زر تسجيل الدخول تلقائياً
+          if (usernameFilled && passwordFilled) {
+            setTimeout(function() {
+              // البحث عن زر تسجيل الدخول
+              var buttons = document.querySelectorAll('button, input[type="submit"], a.btn, .btn, [role="button"]');
+              var loginButton = null;
+              
+              for (var i = 0; i < buttons.length; i++) {
+                var btn = buttons[i];
+                var text = (btn.textContent || btn.innerText || btn.value || '').toLowerCase();
+                var className = (btn.className || '').toLowerCase();
+                var id = (btn.id || '').toLowerCase();
+                var name = (btn.name || '').toLowerCase();
+                
+                if (text.includes('log in') || text.includes('login') || text.includes('sign in') || 
+                    text.includes('submit') || text.includes('enter') || text.includes('تسجيل') ||
+                    className.includes('login') || className.includes('submit') ||
+                    id.includes('login') || id.includes('submit') ||
+                    name.includes('login') || name.includes('submit')) {
+                  loginButton = btn;
+                  break;
+                }
+              }
+              
+              if (loginButton) {
+                loginButton.click();
+                return true;
+              }
+              
+              // إذا لم نجد زر، نحاول إرسال الفورم مباشرة
+              var forms = document.querySelectorAll('form');
+              if (forms.length > 0) {
+                forms[0].submit();
+                return true;
+              }
+            }, 500);
           }
           
           return usernameFilled && passwordFilled;
