@@ -776,7 +776,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    // أيقونة البصمة
+                    // Biometric button
                     if (_isBiometricAvailable) ...[
                       const SizedBox(height: 60),
                       Center(
@@ -794,7 +794,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 BoxShadow(
                                   color: const Color(
                                     0xFF0099A3,
-                                  ).withOpacity(0.3), // ← تم التعديل هنا
+                                  ).withOpacity(0.3),
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 ),
@@ -817,6 +817,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.white,
                                     size: 50,
                                   ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Skip biometric button
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            // Clear fields to prevent auto-fill
+                            setState(() {
+                              _emailController.clear();
+                              _passwordController.clear();
+                            });
+                          },
+                          child: const Text(
+                            'Login without Fingerprint',
+                            style: TextStyle(
+                              color: Color(0xFF0099A3),
+                              fontSize: 14,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ),
