@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:url_launcher/url_launcher.dart';
@@ -475,13 +476,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // شريط علوي Magenta مع "Jeel ERP"
-            Container(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFA21955), // نفس لون الشريط العلوي
+        statusBarIconBrightness: Brightness.light, // أيقونات بيضاء
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // شريط علوي Magenta مع "Jeel ERP"
+              Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: const Color(0xFFA21955),
@@ -862,6 +868,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
