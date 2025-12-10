@@ -21,13 +21,13 @@ class SessionManager {
   static const String _keyRememberMe = 'remember_me';
   static const String _keyFailedAttempts = 'failed_attempts';
   static const String _keyLockoutTime = 'lockout_time';
-  
+
   // مدة صلاحية الجلسة (7 أيام)
   static const Duration _sessionTimeout = Duration(days: 7);
-  
+
   // الحد الأقصى لمحاولات الدخول الفاشلة
   static const int _maxFailedAttempts = 5;
-  
+
   // مدة القفل بعد تجاوز المحاولات
   static const Duration _lockoutDuration = Duration(minutes: 15);
 
@@ -94,18 +94,18 @@ class SessionManager {
     await _storage.delete(key: _keyFailedAttempts);
     await _storage.delete(key: _keyLockoutTime);
   }
-  
+
   // حفظ تفضيل "تذكرني"
   static Future<void> setRememberMe(bool remember) async {
     await _storage.write(key: _keyRememberMe, value: remember.toString());
   }
-  
+
   // الحصول على تفضيل "تذكرني"
   static Future<bool> getRememberMe() async {
     final value = await _storage.read(key: _keyRememberMe);
     return value == 'true';
   }
-  
+
   // تحديث وقت آخر دخول
   static Future<void> updateLastLogin() async {
     await _storage.write(
@@ -113,34 +113,37 @@ class SessionManager {
       value: DateTime.now().toIso8601String(),
     );
   }
-  
+
   // التحقق من صلاحية الجلسة (لم تنته المهلة الزمنية)
   static Future<bool> isSessionValid() async {
     final isLoggedIn = await SessionManager.isLoggedIn();
     if (!isLoggedIn) return false;
-    
+
     final lastLoginStr = await _storage.read(key: _keyLastLogin);
     if (lastLoginStr == null) return false;
-    
+
     try {
       final lastLogin = DateTime.parse(lastLoginStr);
       final now = DateTime.now();
       final difference = now.difference(lastLogin);
-      
+
       return difference < _sessionTimeout;
     } catch (e) {
       return false;
     }
   }
-  
+
   // تسجيل محاولة فاشلة
   static Future<void> recordFailedAttempt() async {
     final attemptsStr = await _storage.read(key: _keyFailedAttempts);
     final attempts = int.tryParse(attemptsStr ?? '0') ?? 0;
     final newAttempts = attempts + 1;
-    
-    await _storage.write(key: _keyFailedAttempts, value: newAttempts.toString());
-    
+
+    await _storage.write(
+      key: _keyFailedAttempts,
+      value: newAttempts.toString(),
+    );
+
     // إذا تجاوز الحد الأقصى، قفل الحساب
     if (newAttempts >= _maxFailedAttempts) {
       final lockoutTime = DateTime.now().add(_lockoutDuration);
@@ -150,30 +153,30 @@ class SessionManager {
       );
     }
   }
-  
+
   // إعادة تعيين محاولات الدخول الفاشلة
   static Future<void> resetFailedAttempts() async {
     await _storage.delete(key: _keyFailedAttempts);
     await _storage.delete(key: _keyLockoutTime);
   }
-  
+
   // التحقق من حالة القفل
   static Future<LockoutStatus> checkLockoutStatus() async {
     final lockoutTimeStr = await _storage.read(key: _keyLockoutTime);
     if (lockoutTimeStr == null) {
       return LockoutStatus(isLocked: false);
     }
-    
+
     try {
       final lockoutTime = DateTime.parse(lockoutTimeStr);
       final now = DateTime.now();
-      
+
       if (now.isAfter(lockoutTime)) {
         // انتهت مدة القفل، إعادة تعيين
         await resetFailedAttempts();
         return LockoutStatus(isLocked: false);
       }
-      
+
       final remaining = lockoutTime.difference(now);
       return LockoutStatus(
         isLocked: true,
@@ -183,13 +186,13 @@ class SessionManager {
       return LockoutStatus(isLocked: false);
     }
   }
-  
+
   // الحصول على عدد المحاولات الفاشلة
   static Future<int> getFailedAttempts() async {
     final attemptsStr = await _storage.read(key: _keyFailedAttempts);
     return int.tryParse(attemptsStr ?? '0') ?? 0;
   }
-  
+
   // الحصول على عدد المحاولات المتبقية
   static Future<int> getRemainingAttempts() async {
     final failed = await getFailedAttempts();
@@ -201,12 +204,9 @@ class SessionManager {
 class LockoutStatus {
   final bool isLocked;
   final int remainingMinutes;
-  
-  LockoutStatus({
-    required this.isLocked,
-    this.remainingMinutes = 0,
-  });
-  
+
+  LockoutStatus({required this.isLocked, this.remainingMinutes = 0});
+
   String get message {
     if (!isLocked) return '';
     return 'Account locked. Try again after $remainingMinutes minute(s).';

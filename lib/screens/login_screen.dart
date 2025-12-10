@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Note: Data is filled only after successful biometric verification
   Future<void> _initialSetup() async {
     await _checkBiometricAvailability();
-    
+
     // Load "Remember Me" preference
     final rememberMe = await SessionManager.getRememberMe();
     if (mounted) {
@@ -106,20 +106,20 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       return;
     }
-    
+
     // Clear previous errors
     setState(() {
       _emailError = null;
       _passwordError = null;
     });
-    
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     // Validate data
     final emailError = Validators.validateEmail(email);
     final passwordError = Validators.validatePassword(password);
-    
+
     if (emailError != null || passwordError != null) {
       setState(() {
         _emailError = emailError;
@@ -134,27 +134,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       AppLogger.info('Starting login process', email);
-      
+
       // حفظ تفضيل "تذكرني"
       await SessionManager.setRememberMe(_rememberMe);
-      
+
       // حفظ بيانات الدخول في التخزين الآمن (إذا كان تضكرني مفعل)
       if (_rememberMe) {
         await SessionManager.saveLoginInfo(email, password);
         await SessionManager.updateLastLogin();
       }
-      
+
       await Future.delayed(const Duration(milliseconds: 200));
 
       final savedUsername = await SessionManager.getUsername();
       final savedPassword = await SessionManager.getPassword();
       final isLoggedIn = await SessionManager.isLoggedIn();
 
-      if ((_rememberMe && savedUsername == email && savedPassword == password && isLoggedIn) || !_rememberMe) {
+      if ((_rememberMe &&
+              savedUsername == email &&
+              savedPassword == password &&
+              isLoggedIn) ||
+          !_rememberMe) {
         // إعادة تعيين المحاولات الفاشلة عند النجاح
         await SessionManager.resetFailedAttempts();
         AppLogger.logLoginAttempt(email, true);
-        
+
         if (!mounted) return;
         setState(() {
           _isLoading = false;
@@ -174,19 +178,19 @@ class _LoginScreenState extends State<LoginScreen> {
       await SessionManager.recordFailedAttempt();
       AppLogger.logLoginAttempt(email, false);
       AppLogger.error('Login failed', e);
-      
+
       final remaining = await SessionManager.getRemainingAttempts();
-      
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-      
+
       String errorMessage = 'An error occurred: $e';
       if (remaining > 0 && remaining <= 3) {
         errorMessage += '\nRemaining attempts: $remaining';
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -218,9 +222,15 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 12),
               _buildGuideStep('1', 'Open phone settings'),
               _buildGuideStep('2', 'Choose "Security" or "Lock & security"'),
-              _buildGuideStep('3', 'Enable a screen lock (pattern/PIN/password)'),
+              _buildGuideStep(
+                '3',
+                'Enable a screen lock (pattern/PIN/password)',
+              ),
               _buildGuideStep('4', 'Register your fingerprint/Face ID'),
-              _buildGuideStep('5', 'Reopen the app; the biometric button appears'),
+              _buildGuideStep(
+                '5',
+                'Reopen the app; the biometric button appears',
+              ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -231,12 +241,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Biometrics used here are the same as your device screen lock',
-                        style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade800,
+                        ),
                       ),
                     ),
                   ],
@@ -279,12 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -377,7 +389,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
-      
+
       // تحديث آخر دخول
       await SessionManager.updateLastLogin();
 
@@ -420,14 +432,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       AppLogger.info('Automatic login after biometrics', email);
-      
+
       // حفظ البيانات (تم حفظها مسبقاً، لكن للتأكد)
       await SessionManager.saveLoginInfo(email, password);
       await SessionManager.updateLastLogin();
       await SessionManager.resetFailedAttempts();
-      
+
       AppLogger.logLoginAttempt(email, true);
-      
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -443,13 +455,13 @@ class _LoginScreenState extends State<LoginScreen> {
       await SessionManager.recordFailedAttempt();
       AppLogger.logLoginAttempt(email, false);
       AppLogger.error('Automatic login failed', e);
-      
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _isBiometricLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Auto login error: $e'),
@@ -554,7 +566,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.fingerprint_outlined, color: Colors.orange.shade700, size: 28),
+                            Icon(
+                              Icons.fingerprint_outlined,
+                              color: Colors.orange.shade700,
+                              size: 28,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -580,7 +596,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.help_outline, color: Colors.orange.shade700),
+                              icon: Icon(
+                                Icons.help_outline,
+                                color: Colors.orange.shade700,
+                              ),
                               onPressed: _showBiometricSetupGuide,
                               tooltip: 'How to enable biometrics?',
                             ),
@@ -591,7 +610,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Biometrics enabled banner hidden
                     // if (_isBiometricAvailable)
                     //   Container(...)
-
                     const SizedBox(height: 8),
 
                     // حقل Email
@@ -619,7 +637,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: _emailError != null ? AppConstants.errorColor : Colors.grey.shade300),
+                          borderSide: BorderSide(
+                            color: _emailError != null
+                                ? AppConstants.errorColor
+                                : Colors.grey.shade300,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -683,7 +705,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: _passwordError != null ? AppConstants.errorColor : Colors.grey.shade300),
+                          borderSide: BorderSide(
+                            color: _passwordError != null
+                                ? AppConstants.errorColor
+                                : Colors.grey.shade300,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -713,7 +739,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    
+
                     // خيار "تذكرني"
                     Row(
                       children: [

@@ -7,7 +7,7 @@ import 'login_screen.dart';
 
 class WebViewScreen extends StatefulWidget {
   final bool shouldAutoFill;
-  
+
   const WebViewScreen({super.key, this.shouldAutoFill = false});
 
   @override
@@ -35,7 +35,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       _username = username;
       _password = password;
     });
-    
+
     // إذا كانت هناك بيانات محفوظة، نفعّل التعبئة التلقائية دائماً
     if (username != null && password != null && !widget.shouldAutoFill) {
       // ننتظر قليلاً ثم نحاول التعبئة
@@ -62,7 +62,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
           onPageFinished: (String url) {
             // If we're on the main page (after login), show content
-            if (url.contains('/main') || url.contains('/dashboard') || url.contains('/home') || _hasAutoFilled) {
+            if (url.contains('/main') ||
+                url.contains('/dashboard') ||
+                url.contains('/home') ||
+                _hasAutoFilled) {
               setState(() {
                 _isLoading = false;
               });
@@ -80,7 +83,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
           onProgress: (int progress) {
             // Auto-fill when page is fully loaded
-            if (progress == 100 && _username != null && _password != null && !_hasAutoFilled) {
+            if (progress == 100 &&
+                _username != null &&
+                _password != null &&
+                !_hasAutoFilled) {
               Future.delayed(const Duration(milliseconds: 1000), () {
                 if (mounted && !_hasAutoFilled) {
                   _autoFillAndLoginInBackground();
@@ -97,7 +103,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
       )
       ..loadRequest(Uri.parse('https://erp.jeel.om/'));
   }
-
 
   // دالة جديدة لتسجيل الدخول في الخلفية دون إظهار صفحة تسجيل الدخول
   Future<void> _autoFillAndLoginInBackground() async {
@@ -118,7 +123,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
         .replaceAll('\r', '\\r');
 
     // JavaScript لتعبئة وتسجيل الدخول تلقائياً في الخلفية
-    final jsCode = '''
+    final jsCode =
+        '''
       (function() {
         try {
           var username = '$escapedUsername';
@@ -195,15 +201,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     try {
       final result = await _controller.runJavaScriptReturningResult(jsCode);
-      
+
       if (result.toString() == 'true') {
         setState(() {
           _hasAutoFilled = true;
         });
-        
+
         // انتظر حتى يتم تسجيل الدخول والانتقال للصفحة الرئيسية
         await Future.delayed(const Duration(milliseconds: 2000));
-        
+
         // الآن أخفِ مؤشر التحميل لإظهار الصفحة الرئيسية
         if (mounted) {
           setState(() {
@@ -229,7 +235,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   // دالة محسّنة مع محاولات متعددة وضغط زر Log in تلقائياً
   Future<void> _autoFillFormWithRetry({int retryCount = 0}) async {
     if (_username == null || _password == null) return;
-    
+
     const maxRetries = 5;
     if (retryCount >= maxRetries || _hasAutoFilled) return;
 
@@ -248,7 +254,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
         .replaceAll('\r', '\\r');
 
     // JavaScript محسّن لتعبئة الفورم وضغط زر تسجيل الدخول تلقائياً
-    final jsCode = '''
+    final jsCode =
+        '''
       (function() {
         try {
           var usernameFilled = false;
@@ -365,7 +372,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     try {
       final result = await _controller.runJavaScriptReturningResult(jsCode);
-      
+
       // إذا نجحت العملية
       if (result.toString() == 'true') {
         setState(() {
@@ -373,7 +380,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         });
         return;
       }
-      
+
       // إذا فشلت، نحاول مرة أخرى بعد تأخير
       if (retryCount < maxRetries - 1) {
         await Future.delayed(Duration(milliseconds: 500 + (retryCount * 200)));
@@ -411,7 +418,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
         .replaceAll('\r', '\\r');
 
     // طريقة بديلة: البحث في جميع الحقول
-    final alternativeJs = '''
+    final alternativeJs =
+        '''
       (function() {
         try {
           var inputs = document.querySelectorAll('input');
@@ -462,7 +470,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
     ''';
 
     try {
-      final result = await _controller.runJavaScriptReturningResult(alternativeJs);
+      final result = await _controller.runJavaScriptReturningResult(
+        alternativeJs,
+      );
       if (result.toString() == 'true') {
         setState(() {
           _hasAutoFilled = true;
@@ -493,14 +503,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
 
     if (confirm == true) {
-        final username = _username;
-        AppLogger.logLogout(username);
+      final username = _username;
+      AppLogger.logLogout(username);
       await SessionManager.logout();
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const LoginScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
       }
     }
@@ -538,7 +546,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
               ),
             ),
           // زر لتعبئة الفورم يدوياً (للاستخدام في حالة فشل التعبئة التلقائية)
-          if (!_isLoading && _username != null && _password != null && !_hasAutoFilled)
+          if (!_isLoading &&
+              _username != null &&
+              _password != null &&
+              !_hasAutoFilled)
             Positioned(
               bottom: 20,
               right: 20,
@@ -556,4 +567,3 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 }
-
