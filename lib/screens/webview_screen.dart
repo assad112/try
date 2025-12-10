@@ -64,7 +64,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           onPageFinished: (String url) {
             // If we have credentials and haven't auto-filled yet, try auto-fill
             if (_username != null && _password != null && !_hasAutoFilled) {
-              Future.delayed(const Duration(milliseconds: 200), () {
+              Future.delayed(const Duration(milliseconds: 100), () {
                 if (mounted && !_hasAutoFilled) {
                   _autoFillAndLoginInBackground();
                 }
@@ -82,7 +82,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 _username != null &&
                 _password != null &&
                 !_hasAutoFilled) {
-              Future.delayed(const Duration(milliseconds: 100), () {
+              Future.delayed(const Duration(milliseconds: 50), () {
                 if (mounted && !_hasAutoFilled) {
                   _autoFillAndLoginInBackground();
                 }
@@ -197,7 +197,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 forms[0].submit();
               }
               return true;
-            }, 200);
+            }, 50);
           }
           
           return usernameFilled && passwordFilled;

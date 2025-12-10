@@ -164,10 +164,10 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
 
-        // الانتقال إلى الـ WebView بدون تعبئة تلقائية (تسجيل دخول عادي)
+        // الانتقال إلى الـ WebView مع التسجيل التلقائي السريع في الخلفية
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const WebViewScreen(shouldAutoFill: false),
+            builder: (context) => const WebViewScreen(shouldAutoFill: true),
           ),
         );
       } else {
