@@ -41,19 +41,22 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // Schedule navigation after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLoginStatus();
+    });
   }
 
   Future<void> _checkLoginStatus() async {
-    // Single loading screen - no delay, go directly to login
+    // Brief delay to ensure smooth transition
+    await Future.delayed(const Duration(milliseconds: 100));
+    
     if (!mounted) return;
 
     // Always go to login screen (no automatic biometric)
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   @override
