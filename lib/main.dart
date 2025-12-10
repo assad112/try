@@ -48,9 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    // Brief delay to ensure smooth transition
-    await Future.delayed(const Duration(milliseconds: 100));
-    
+    // Instant navigation - no delay needed
     if (!mounted) return;
 
     // Always go to login screen (no automatic biometric)
