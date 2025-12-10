@@ -588,31 +588,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                    if (_isBiometricAvailable)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green.shade300),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.check_circle, color: Colors.green.shade700, size: 24),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Biometrics enabled ✓ You can use the biometric button below for quick login.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green.shade800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    // Biometrics enabled banner hidden
+                    // if (_isBiometricAvailable)
+                    //   Container(...)
 
                     const SizedBox(height: 8),
 
