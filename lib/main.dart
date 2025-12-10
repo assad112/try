@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'screens/login_screen.dart';
 
 void main() {
@@ -59,9 +60,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFA21955), // نفس لون AppBar البنفسجي
+        statusBarIconBrightness: Brightness.light, // أيقونات بيضاء
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -116,6 +122,7 @@ class _SplashScreenState extends State<SplashScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
