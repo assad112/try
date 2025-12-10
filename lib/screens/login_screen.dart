@@ -485,28 +485,15 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: const Color(0xFFA21955),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Text(
-                    'Jeel ERP',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+              child: const Center(
+                child: Text(
+                  'Jeel ERP',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Positioned(
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.more_vert, color: Colors.white),
-                      onPressed: () {
-                        // BiometricChecker dialog hidden
-                        // BiometricChecker.showBiometricDialog(context);
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
 
