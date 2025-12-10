@@ -847,24 +847,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-
-            // Footer أسود
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.black87,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Icon(Icons.menu, color: Colors.white70),
-                  Text(
-                    'Copyright © Jeel',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                  Icon(Icons.arrow_forward, color: Colors.white70),
-                ],
-              ),
-            ),
           ],
         ),
       ),
