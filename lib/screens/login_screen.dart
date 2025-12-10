@@ -4,7 +4,6 @@ import 'package:local_auth/error_codes.dart' as auth_error;
 
 import '../services/session_manager.dart';
 import '../services/biometric_service.dart';
-import '../utils/biometric_checker.dart';
 import '../utils/validators.dart';
 import '../utils/app_constants.dart';
 import '../utils/app_logger.dart';
@@ -489,7 +488,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.more_vert, color: Colors.white),
                       onPressed: () {
-                        BiometricChecker.showBiometricDialog(context);
+                        // BiometricChecker dialog hidden
+                        // BiometricChecker.showBiometricDialog(context);
                       },
                     ),
                   ),
