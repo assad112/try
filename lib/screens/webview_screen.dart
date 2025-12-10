@@ -523,6 +523,83 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
+  Future<void> _clearCache() async {
+    try {
+      await _controller.clearCache();
+      await _controller.clearLocalStorage();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cache cleared successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // إعادة تحميل الصفحة
+        await _controller.reload();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to clear cache: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSettings() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.settings, color: Color(0xFFA21955)),
+            SizedBox(width: 12),
+            Text('Settings'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
+              title: const Text('App Version'),
+              subtitle: const Text('1.5.4'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.person, color: Color(0xFF0099A3)),
+              title: const Text('Logged in as'),
+              subtitle: Text(_username ?? 'Unknown'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.web, color: Color(0xFF0099A3)),
+              title: const Text('Website'),
+              subtitle: const Text('erp.jeel.om'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -542,6 +619,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _handleLogout();
+              } else if (value == 'clear_cache') {
+                _clearCache();
+              } else if (value == 'settings') {
+                _showSettings();
               }
             },
             itemBuilder: (context) => [
@@ -552,6 +633,26 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     Icon(Icons.logout, color: Colors.red),
                     SizedBox(width: 12),
                     Text('Logout'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'clear_cache',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear_all, color: Colors.orange),
+                    SizedBox(width: 12),
+                    Text('Clear Cache'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Text('Settings'),
                   ],
                 ),
               ),
