@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/session_manager.dart';
-import 'services/biometric_service.dart';
 import 'screens/login_screen.dart';
-import 'screens/webview_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -48,93 +45,16 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    // انتظار قصير لعرض شاشة البداية
+    // Short delay to show splash screen
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
-    // ========== التحقق من وجود بيانات دخول محفوظة ==========
-    // إذا كانت هناك بيانات محفوظة من تسجيل الدخول الطبيعي السابق
-    // سيتم تفعيل البصمة تلقائياً
-    final isLoggedIn = await SessionManager.isLoggedIn();
-
-    if (!mounted) return;
-
-    if (isLoggedIn) {
-      // ========== تفعيل البصمة تلقائياً ==========
-      // إذا كانت هناك بيانات محفوظة، يتم تفعيل البصمة تلقائياً
-      // المستخدم لا يحتاج إلى إدخال البيانات مرة أخرى
-      await _handleBiometricAuthentication();
-    } else {
-      // إذا لم تكن هناك بيانات محفوظة، الانتقال إلى صفحة تسجيل الدخول
-      // المستخدم يحتاج إلى تسجيل الدخول الطبيعي أولاً
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      }
-    }
-  }
-
-  Future<void> _handleBiometricAuthentication() async {
-    try {
-      // ========== تفعيل البصمة تلقائياً ==========
-      // عند فتح التطبيق، إذا كانت هناك بيانات محفوظة
-      // يتم تفعيل البصمة تلقائياً بدون الحاجة لإدخال البيانات
-      final isBiometricAvailable = await BiometricService.isAvailable();
-
-      if (!mounted) return;
-
-      if (isBiometricAvailable) {
-        // طلب البصمة/Face ID الحقيقية مباشرة عند فتح التطبيق
-        try {
-          final result = await BiometricService.authenticate();
-
-          if (!mounted) return;
-
-          if (result.success) {
-            // ========== عند نجاح البصمة الحقيقية ==========
-            // البيانات محفوظة في الهاتف، والبصمة نجحت
-            // الانتقال مباشرة إلى WebView مع تفعيل تعبئة الفورم تلقائياً
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) =>
-                    const WebViewScreen(shouldAutoFill: true),
-              ),
-            );
-          } else {
-            // إذا فشلت البصمة أو ألغاها المستخدم
-            // العودة إلى صفحة تسجيل الدخول (البيانات لا تزال محفوظة)
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          }
-        } catch (e) {
-          // في حالة حدوث خطأ، الانتقال إلى صفحة تسجيل الدخول
-          if (mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          }
-        }
-      } else {
-        // إذا لم تكن البصمة متاحة على الجهاز
-        // الانتقال مباشرة إلى WebView (البيانات محفوظة)
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const WebViewScreen(shouldAutoFill: false),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      // في حالة حدوث خطأ عام، الانتقال إلى صفحة تسجيل الدخول
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      }
+    // Always go to login screen (no automatic biometric)
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     }
   }
 
