@@ -20,6 +20,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
   String? _username;
   String? _password;
   bool _hasAutoFilled = false;
+  int _autoFillAttempts = 0;
+  static const int _maxAutoFillAttempts = 3;
 
   @override
   void initState() {
@@ -53,33 +55,27 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            // Keep loading indicator visible
-            if (!_hasAutoFilled) {
-              setState(() {
-                _isLoading = true;
-              });
-            }
+            setState(() {
+              _isLoading = true;
+            });
           },
           onPageFinished: (String url) {
-            // Auto-fill and login immediately without showing login page
+            // If we have credentials and haven't auto-filled yet, try auto-fill
             if (_username != null && _password != null && !_hasAutoFilled) {
-              // Quick auto-fill - no delay
               Future.delayed(const Duration(milliseconds: 500), () {
                 if (mounted && !_hasAutoFilled) {
                   _autoFillAndLoginInBackground();
                 }
               });
-            } else if (_hasAutoFilled || url.contains('/main') ||
-                url.contains('/dashboard') ||
-                url.contains('/home')) {
-              // Hide loading only when on main page
+            } else {
+              // No credentials or already auto-filled - hide loading
               setState(() {
                 _isLoading = false;
               });
             }
           },
           onProgress: (int progress) {
-            // Fast auto-fill at 100%
+            // Try auto-fill at 100% if not done yet
             if (progress == 100 &&
                 _username != null &&
                 _password != null &&
@@ -104,6 +100,19 @@ class _WebViewScreenState extends State<WebViewScreen> {
   // دالة جديدة لتسجيل الدخول في الخلفية دون إظهار صفحة تسجيل الدخول
   Future<void> _autoFillAndLoginInBackground() async {
     if (_username == null || _password == null || _hasAutoFilled) return;
+
+    // Check max attempts
+    if (_autoFillAttempts >= _maxAutoFillAttempts) {
+      // Too many attempts, stop trying and hide loading
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    _autoFillAttempts++;
 
     // Escape القيم بشكل آمن
     final escapedUsername = _username!
