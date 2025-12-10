@@ -45,9 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    // Short delay to show splash screen
-    await Future.delayed(const Duration(milliseconds: 800));
-
+    // Single loading screen - no delay, go directly to login
     if (!mounted) return;
 
     // Always go to login screen (no automatic biometric)

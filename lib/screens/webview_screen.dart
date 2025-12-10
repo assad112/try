@@ -53,7 +53,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            // Keep loading true until we're fully logged in and on the main page
+            // Keep loading indicator visible
             if (!_hasAutoFilled) {
               setState(() {
                 _isLoading = true;
@@ -61,33 +61,30 @@ class _WebViewScreenState extends State<WebViewScreen> {
             }
           },
           onPageFinished: (String url) {
-            // If we're on the main page (after login), show content
-            if (url.contains('/main') ||
+            // Auto-fill and login immediately without showing login page
+            if (_username != null && _password != null && !_hasAutoFilled) {
+              // Quick auto-fill - no delay
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted && !_hasAutoFilled) {
+                  _autoFillAndLoginInBackground();
+                }
+              });
+            } else if (_hasAutoFilled || url.contains('/main') ||
                 url.contains('/dashboard') ||
-                url.contains('/home') ||
-                _hasAutoFilled) {
+                url.contains('/home')) {
+              // Hide loading only when on main page
               setState(() {
                 _isLoading = false;
               });
-            } else {
-              // Still on login page - perform auto-fill and login
-              if (_username != null && _password != null && !_hasAutoFilled) {
-                // Auto-fill and click login button immediately
-                Future.delayed(const Duration(milliseconds: 800), () {
-                  if (mounted && !_hasAutoFilled) {
-                    _autoFillAndLoginInBackground();
-                  }
-                });
-              }
             }
           },
           onProgress: (int progress) {
-            // Auto-fill when page is fully loaded
+            // Fast auto-fill at 100%
             if (progress == 100 &&
                 _username != null &&
                 _password != null &&
                 !_hasAutoFilled) {
-              Future.delayed(const Duration(milliseconds: 1000), () {
+              Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted && !_hasAutoFilled) {
                   _autoFillAndLoginInBackground();
                 }
@@ -189,7 +186,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 forms[0].submit();
               }
               return true;
-            }, 300);
+            }, 200);
           }
           
           return usernameFilled && passwordFilled;
@@ -207,25 +204,25 @@ class _WebViewScreenState extends State<WebViewScreen> {
           _hasAutoFilled = true;
         });
 
-        // انتظر حتى يتم تسجيل الدخول والانتقال للصفحة الرئيسية
-        await Future.delayed(const Duration(milliseconds: 2000));
+        // Wait briefly for navigation
+        await Future.delayed(const Duration(milliseconds: 1500));
 
-        // الآن أخفِ مؤشر التحميل لإظهار الصفحة الرئيسية
+        // Hide loading indicator
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
         }
       } else {
-        // حاول مرة أخرى
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Quick retry
+        await Future.delayed(const Duration(milliseconds: 300));
         if (mounted && !_hasAutoFilled) {
           _autoFillAndLoginInBackground();
         }
       }
     } catch (e) {
-      // حاول مرة أخرى في حالة الخطأ
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Quick retry on error
+      await Future.delayed(const Duration(milliseconds: 300));
       if (mounted && !_hasAutoFilled) {
         _autoFillAndLoginInBackground();
       }
