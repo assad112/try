@@ -53,49 +53,177 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              _hasAutoFilled = false;
-            });
+            // Keep loading true until we're fully logged in and on the main page
+            if (!_hasAutoFilled) {
+              setState(() {
+                _isLoading = true;
+              });
+            }
           },
           onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
-            // تعبئة الفورم تلقائياً بعد تحميل الصفحة
-            // ننتظر قليلاً للتأكد من تحميل DOM بالكامل
-            if (_username != null && _password != null) {
-              // محاولة متعددة مع تأخيرات مختلفة
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (mounted && !_hasAutoFilled) {
-                  _autoFillFormWithRetry();
-                }
+            // If we're on the main page (after login), show content
+            if (url.contains('/main') || url.contains('/dashboard') || url.contains('/home') || _hasAutoFilled) {
+              setState(() {
+                _isLoading = false;
               });
-              Future.delayed(const Duration(milliseconds: 1500), () {
-                if (mounted && !_hasAutoFilled) {
-                  _autoFillFormWithRetry();
-                }
-              });
-              Future.delayed(const Duration(milliseconds: 2500), () {
-                if (mounted && !_hasAutoFilled) {
-                  _autoFillFormWithRetry();
-                }
-              });
+            } else {
+              // Still on login page - perform auto-fill and login
+              if (_username != null && _password != null && !_hasAutoFilled) {
+                // Auto-fill and click login button immediately
+                Future.delayed(const Duration(milliseconds: 800), () {
+                  if (mounted && !_hasAutoFilled) {
+                    _autoFillAndLoginInBackground();
+                  }
+                });
+              }
             }
           },
           onProgress: (int progress) {
-            // محاولة تعبئة الفورم عند 100% من التحميل
-            if (progress == 100 && _username != null && _password != null) {
-              Future.delayed(const Duration(milliseconds: 2000), () {
+            // Auto-fill when page is fully loaded
+            if (progress == 100 && _username != null && _password != null && !_hasAutoFilled) {
+              Future.delayed(const Duration(milliseconds: 1000), () {
                 if (mounted && !_hasAutoFilled) {
-                  _autoFillFormWithRetry();
+                  _autoFillAndLoginInBackground();
                 }
               });
             }
+          },
+          onWebResourceError: (error) {
+            setState(() {
+              _isLoading = false;
+            });
           },
         ),
       )
       ..loadRequest(Uri.parse('https://erp.jeel.om/'));
+  }
+
+
+  // دالة جديدة لتسجيل الدخول في الخلفية دون إظهار صفحة تسجيل الدخول
+  Future<void> _autoFillAndLoginInBackground() async {
+    if (_username == null || _password == null || _hasAutoFilled) return;
+
+    // Escape القيم بشكل آمن
+    final escapedUsername = _username!
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r');
+    final escapedPassword = _password!
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r');
+
+    // JavaScript لتعبئة وتسجيل الدخول تلقائياً في الخلفية
+    final jsCode = '''
+      (function() {
+        try {
+          var username = '$escapedUsername';
+          var password = '$escapedPassword';
+          var usernameFilled = false;
+          var passwordFilled = false;
+          
+          // البحث عن حقول تسجيل الدخول
+          var allInputs = document.querySelectorAll('input');
+          
+          for (var i = 0; i < allInputs.length; i++) {
+            var input = allInputs[i];
+            var type = (input.type || '').toLowerCase();
+            var name = (input.name || '').toLowerCase();
+            var id = (input.id || '').toLowerCase();
+            var placeholder = (input.placeholder || '').toLowerCase();
+            
+            // حقل اسم المستخدم/الإيميل
+            if (!usernameFilled && (type === 'text' || type === 'email')) {
+              var isEmailField = 
+                name.includes('email') || name.includes('user') || name.includes('login') ||
+                id.includes('email') || id.includes('user') || id.includes('login') ||
+                placeholder.includes('email') || placeholder.includes('user') || placeholder.includes('login');
+              
+              if (isEmailField || i === 0) {
+                input.value = username;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                usernameFilled = true;
+              }
+            }
+            
+            // حقل كلمة المرور
+            if (!passwordFilled && type === 'password') {
+              input.value = password;
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+              passwordFilled = true;
+            }
+            
+            if (usernameFilled && passwordFilled) break;
+          }
+          
+          // إذا تم ملء الحقول، اضغط على زر تسجيل الدخول فوراً
+          if (usernameFilled && passwordFilled) {
+            setTimeout(function() {
+              var buttons = document.querySelectorAll('button, input[type="submit"]');
+              
+              for (var i = 0; i < buttons.length; i++) {
+                var btn = buttons[i];
+                var text = (btn.textContent || btn.innerText || btn.value || '').toLowerCase();
+                
+                if (text.includes('log in') || text.includes('login') || text.includes('sign in') || text.includes('submit')) {
+                  btn.click();
+                  return true;
+                }
+              }
+              
+              // إذا لم نجد زر، نرسل الفورم
+              var forms = document.querySelectorAll('form');
+              if (forms.length > 0) {
+                forms[0].submit();
+              }
+              return true;
+            }, 300);
+          }
+          
+          return usernameFilled && passwordFilled;
+        } catch (e) {
+          return false;
+        }
+      })();
+    ''';
+
+    try {
+      final result = await _controller.runJavaScriptReturningResult(jsCode);
+      
+      if (result.toString() == 'true') {
+        setState(() {
+          _hasAutoFilled = true;
+        });
+        
+        // انتظر حتى يتم تسجيل الدخول والانتقال للصفحة الرئيسية
+        await Future.delayed(const Duration(milliseconds: 2000));
+        
+        // الآن أخفِ مؤشر التحميل لإظهار الصفحة الرئيسية
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } else {
+        // حاول مرة أخرى
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted && !_hasAutoFilled) {
+          _autoFillAndLoginInBackground();
+        }
+      }
+    } catch (e) {
+      // حاول مرة أخرى في حالة الخطأ
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted && !_hasAutoFilled) {
+        _autoFillAndLoginInBackground();
+      }
+    }
   }
 
   // دالة محسّنة مع محاولات متعددة وضغط زر Log in تلقائياً
