@@ -557,6 +557,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   void _showSettings() async {
     // التحقق من حالة البصمة
     final biometricAvailable = await BiometricService.isAvailable();
+    final biometricTypes = await BiometricService.getAvailableBiometrics();
     final rememberMe = await SessionManager.getRememberMe();
     
     if (!mounted) return;
@@ -580,7 +581,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.5.5'),
+                  subtitle: const Text('1.5.8'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),
@@ -599,23 +600,38 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ),
                 const Divider(),
                 const SizedBox(height: 8),
-                const Text(
-                  'Biometric Authentication',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFA21955),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Biometric Authentication',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFA21955),
+                      ),
+                    ),
+                    if (biometricAvailable)
+                      IconButton(
+                        icon: const Icon(Icons.verified_user, color: Color(0xFF0099A3)),
+                        tooltip: 'Test Biometric',
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _testBiometric();
+                        },
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 ListTile(
                   leading: Icon(
                     Icons.fingerprint,
                     color: biometricAvailable ? Colors.green : Colors.grey,
+                    size: 32,
                   ),
                   title: const Text('Biometric Status'),
                   subtitle: Text(
-                    biometricAvailable ? 'Available & Enabled' : 'Disabled or Not Available',
+                    biometricAvailable ? 'Available & Enabled ✓' : 'Disabled or Not Available ✗',
                     style: TextStyle(
                       color: biometricAvailable ? Colors.green : Colors.orange,
                       fontWeight: FontWeight.w500,
@@ -623,6 +639,57 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   ),
                   contentPadding: EdgeInsets.zero,
                 ),
+                if (biometricTypes.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Available Biometric Types:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade900,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ...biometricTypes.map((type) => Padding(
+                          padding: const EdgeInsets.only(left: 28, top: 4),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _getBiometricIcon(type),
+                                size: 16,
+                                color: Colors.green.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _getBiometricName(type),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 SwitchListTile(
                   value: rememberMe,
@@ -632,10 +699,21 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(this.context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            value
-                                ? 'Biometric login enabled - You will be logged in automatically'
-                                : 'Biometric login disabled - Manual login required',
+                          content: Row(
+                            children: [
+                              Icon(
+                                value ? Icons.check_circle : Icons.info,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  value
+                                      ? 'Biometric auto-login enabled ✓'
+                                      : 'Manual login required each time',
+                                ),
+                              ),
+                            ],
                           ),
                           backgroundColor: value ? Colors.green : Colors.orange,
                           duration: const Duration(seconds: 3),
@@ -643,11 +721,11 @@ class _WebViewScreenState extends State<WebViewScreen> {
                       );
                     }
                   },
-                  title: const Text('Remember Me & Use Biometrics'),
+                  title: const Text('Auto-Login with Biometrics'),
                   subtitle: Text(
                     rememberMe
-                        ? 'Auto-login with biometrics enabled'
-                        : 'Manual login required each time',
+                        ? 'Enabled - Login automatically on app start'
+                        : 'Disabled - Enter credentials manually',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -671,7 +749,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Enable biometrics on your device to use this feature',
+                            'Enable fingerprint or face unlock on your device to use biometric authentication',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.orange.shade900,
@@ -686,6 +764,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
             ),
           ),
           actions: [
+            if (biometricAvailable)
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _testBiometric();
+                },
+                icon: const Icon(Icons.fingerprint),
+                label: const Text('Test'),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Close'),
@@ -694,6 +781,87 @@ class _WebViewScreenState extends State<WebViewScreen> {
         ),
       ),
     );
+  }
+
+  IconData _getBiometricIcon(dynamic type) {
+    final typeStr = type.toString().toLowerCase();
+    if (typeStr.contains('face')) return Icons.face;
+    if (typeStr.contains('fingerprint')) return Icons.fingerprint;
+    if (typeStr.contains('iris')) return Icons.visibility;
+    return Icons.security;
+  }
+
+  String _getBiometricName(dynamic type) {
+    final typeStr = type.toString().toLowerCase();
+    if (typeStr.contains('face')) return 'Face Recognition';
+    if (typeStr.contains('fingerprint')) return 'Fingerprint';
+    if (typeStr.contains('iris')) return 'Iris Scanner';
+    if (typeStr.contains('strong')) return 'Strong Biometric';
+    if (typeStr.contains('weak')) return 'Weak Biometric';
+    return type.toString().split('.').last;
+  }
+
+  Future<void> _testBiometric() async {
+    try {
+      final result = await BiometricService.authenticate();
+      
+      if (!mounted) return;
+      
+      if (result.success) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade600),
+                const SizedBox(width: 12),
+                const Text('Success!'),
+              ],
+            ),
+            content: const Text(
+              'Biometric authentication successful! Your biometric sensor is working correctly.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.error, color: Colors.red.shade600),
+                const SizedBox(width: 12),
+                const Text('Failed'),
+              ],
+            ),
+            content: Text(
+              result.message ?? 'Biometric authentication failed. Please try again.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error testing biometric: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
