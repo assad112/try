@@ -675,8 +675,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextButton(
                           onPressed: () async {
                             final Uri url = Uri.parse('https://erp.jeel.om/web/reset_password');
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            try {
+                              // Try to launch URL in external browser
+                              final bool launched = await launchUrl(
+                                url,
+                                mode: LaunchMode.platformDefault,
+                              );
+                              
+                              if (!launched && mounted) {
+                                // If launch failed, show error message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Could not open browser. Please try again.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error opening link: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
                           },
                           style: TextButton.styleFrom(
