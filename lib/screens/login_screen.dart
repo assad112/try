@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/session_manager.dart';
 import '../services/biometric_service.dart';
@@ -672,7 +673,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://erp.jeel.om/web/reset_password');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,
