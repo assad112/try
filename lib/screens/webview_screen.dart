@@ -41,8 +41,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     // إذا كانت هناك بيانات محفوظة، نفعّل التعبئة التلقائية دائماً
     if (username != null && password != null && !widget.shouldAutoFill) {
-      // ننتظر قليلاً ثم نحاول التعبئة
-      Future.delayed(const Duration(seconds: 2), () {
+      // تعبئة فورية بدون تأخير
+      Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted && !_hasAutoFilled) {
           _autoFillFormWithRetry();
         }
@@ -217,7 +217,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         });
 
         // Wait briefly for navigation
-        await Future.delayed(const Duration(milliseconds: 1500));
+        await Future.delayed(const Duration(milliseconds: 200));
 
         // Hide loading indicator
         if (mounted) {
@@ -227,14 +227,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
         }
       } else {
         // Quick retry
-        await Future.delayed(const Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 50));
         if (mounted && !_hasAutoFilled) {
           _autoFillAndLoginInBackground();
         }
       }
     } catch (e) {
       // Quick retry on error
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 50));
       if (mounted && !_hasAutoFilled) {
         _autoFillAndLoginInBackground();
       }
@@ -392,7 +392,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
       // إذا فشلت، نحاول مرة أخرى بعد تأخير
       if (retryCount < maxRetries - 1) {
-        await Future.delayed(Duration(milliseconds: 500 + (retryCount * 200)));
+        await Future.delayed(Duration(milliseconds: 100 + (retryCount * 50)));
         await _autoFillFormWithRetry(retryCount: retryCount + 1);
       } else {
         // محاولة أخيرة بالطريقة البديلة
@@ -401,7 +401,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     } catch (e) {
       // في حالة الخطأ، نحاول مرة أخرى
       if (retryCount < maxRetries - 1) {
-        await Future.delayed(Duration(milliseconds: 500 + (retryCount * 200)));
+        await Future.delayed(Duration(milliseconds: 100 + (retryCount * 50)));
         await _autoFillFormWithRetry(retryCount: retryCount + 1);
       } else {
         await _tryAlternativeAutoFill();
