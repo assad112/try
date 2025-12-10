@@ -847,26 +847,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      // Skip biometric button
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            // Clear fields to prevent auto-fill
-                            setState(() {
-                              _emailController.clear();
-                              _passwordController.clear();
-                            });
-                          },
-                          child: const Text(
-                            'Login without Fingerprint',
-                            style: TextStyle(
-                              color: Color(0xFF0099A3),
-                              fontSize: 14,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ],
                 ),
