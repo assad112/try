@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../services/session_manager.dart';
+import '../services/biometric_service.dart';
 import '../utils/app_logger.dart';
 import 'login_screen.dart';
 
@@ -553,49 +554,144 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
-  void _showSettings() {
+  void _showSettings() async {
+    // التحقق من حالة البصمة
+    final biometricAvailable = await BiometricService.isAvailable();
+    final rememberMe = await SessionManager.getRememberMe();
+    
+    if (!mounted) return;
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.settings, color: Color(0xFFA21955)),
-            SizedBox(width: 12),
-            Text('Settings'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
-              title: const Text('App Version'),
-              subtitle: const Text('1.5.4'),
-              contentPadding: EdgeInsets.zero,
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.person, color: Color(0xFF0099A3)),
-              title: const Text('Logged in as'),
-              subtitle: Text(_username ?? 'Unknown'),
-              contentPadding: EdgeInsets.zero,
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.web, color: Color(0xFF0099A3)),
-              title: const Text('Website'),
-              subtitle: const Text('erp.jeel.om'),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.settings, color: Color(0xFFA21955)),
+              SizedBox(width: 12),
+              Text('Settings'),
+            ],
           ),
-        ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
+                  title: const Text('App Version'),
+                  subtitle: const Text('1.5.5'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.person, color: Color(0xFF0099A3)),
+                  title: const Text('Logged in as'),
+                  subtitle: Text(_username ?? 'Unknown'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.web, color: Color(0xFF0099A3)),
+                  title: const Text('Website'),
+                  subtitle: const Text('erp.jeel.om'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Text(
+                  'Biometric Authentication',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFA21955),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: Icon(
+                    Icons.fingerprint,
+                    color: biometricAvailable ? Colors.green : Colors.grey,
+                  ),
+                  title: const Text('Biometric Status'),
+                  subtitle: Text(
+                    biometricAvailable ? 'Available & Enabled' : 'Disabled or Not Available',
+                    style: TextStyle(
+                      color: biometricAvailable ? Colors.green : Colors.orange,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  value: rememberMe,
+                  onChanged: (value) async {
+                    await SessionManager.setRememberMe(value);
+                    setState(() {});
+                    if (mounted) {
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            value
+                                ? 'Biometric login enabled - You will be logged in automatically'
+                                : 'Biometric login disabled - Manual login required',
+                          ),
+                          backgroundColor: value ? Colors.green : Colors.orange,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  },
+                  title: const Text('Remember Me & Use Biometrics'),
+                  subtitle: Text(
+                    rememberMe
+                        ? 'Auto-login with biometrics enabled'
+                        : 'Manual login required each time',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  activeColor: const Color(0xFF0099A3),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                if (!biometricAvailable) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Enable biometrics on your device to use this feature',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
       ),
     );
   }
