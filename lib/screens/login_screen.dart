@@ -809,52 +809,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    // Biometric button
-                    if (_isBiometricAvailable) ...[
-                      const SizedBox(height: 60),
-                      Center(
-                        child: GestureDetector(
-                          onTap: _isBiometricLoading
-                              ? null
-                              : _handleBiometricLogin,
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF0099A3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF0099A3,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: _isBiometricLoading
-                                ? Center(
-                                    child:
-                                        LoadingAnimationWidget.discreteCircle(
-                                          color: Colors.white,
-                                          size: 30,
-                                          secondRingColor: const Color(
-                                            0xFF0099A3,
-                                          ),
-                                          thirdRingColor: Colors.white,
-                                        ),
-                                  )
-                                : const Icon(
-                                    Icons.fingerprint,
-                                    color: Colors.white,
-                                    size: 50,
-                                  ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 20),
-                  ],
                 ],
               ),
             ),
