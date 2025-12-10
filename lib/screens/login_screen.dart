@@ -502,34 +502,25 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: Colors.white,
-              child: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/JeeEngineering.png',
+              child: Image.asset(
+                'assets/images/JeeEngineering.png',
+                height: 40,
+                fit: BoxFit.contain,
+                alignment: Alignment.centerLeft,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Error loading image: $error');
+                  return Container(
                     height: 40,
-                    fit: BoxFit.contain,
-                    alignment: Alignment.centerLeft,
-                    errorBuilder: (context, error, stackTrace) {
-                      debugPrint('Error loading image: $error');
-                      return Container(
-                        height: 40,
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            size: 30,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.black87),
-                    onPressed: () {},
-                  ),
-                ],
+                    color: Colors.grey.shade200,
+                    child: const Center(
+                      child: Icon(
+                        Icons.image,
+                        size: 30,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 
