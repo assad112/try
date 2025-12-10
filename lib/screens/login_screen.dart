@@ -476,68 +476,62 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFA21955), // نفس لون الشريط العلوي
-        statusBarIconBrightness: Brightness.light, // أيقونات بيضاء
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFA21955),
+        elevation: 0,
+        centerTitle: true,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFFA21955),
+          statusBarIconBrightness: Brightness.light,
+        ),
+        title: const Text(
+          'Jeel ERP',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // شريط علوي Magenta مع "Jeel ERP"
-              Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: const Color(0xFFA21955),
-              child: const Center(
-                child: Text(
-                  'Jeel ERP',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-
-            // صورة JeeEngineering.png ملاصقة للـ AppBar
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.white,
-              child: Image.asset(
-                'assets/images/JeeEngineering.png',
-                height: 40,
-                fit: BoxFit.contain,
-                alignment: Alignment.centerLeft,
-                errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Error loading image: $error');
-                  return Container(
-                    height: 40,
-                    color: Colors.grey.shade200,
-                    child: const Center(
-                      child: Icon(
-                        Icons.image,
-                        size: 30,
-                        color: Colors.grey,
-                      ),
+      body: Column(
+        children: [
+          // صورة JeeEngineering.png ملاصقة للـ AppBar
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: Colors.white,
+            child: Image.asset(
+              'assets/images/JeeEngineering.png',
+              height: 40,
+              fit: BoxFit.contain,
+              alignment: Alignment.centerLeft,
+              errorBuilder: (context, error, stackTrace) {
+                debugPrint('Error loading image: $error');
+                return Container(
+                  height: 40,
+                  color: Colors.grey.shade200,
+                  child: const Center(
+                    child: Icon(
+                      Icons.image,
+                      size: 30,
+                      color: Colors.grey,
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
+          ),
 
-            // محتوى الصفحة
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
+          // محتوى الصفحة
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
 
                     // تنبيه البصمة
                     if (!_isBiometricAvailable)
@@ -856,19 +850,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.white,
                                     size: 50,
                                   ),
-                          ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                    ],
+                    ),
+                    const SizedBox(height: 20),
                   ],
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ),
     );
   }
 }
