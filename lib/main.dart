@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const Text(
               'Jeel ERP',
               style: TextStyle(
-                color: Color(0xFFA21955),
+                color: Colors.black,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
