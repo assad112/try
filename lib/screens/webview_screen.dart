@@ -581,7 +581,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.5.8'),
+                  subtitle: const Text('1.6.0 - Enhanced Biometric'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),
