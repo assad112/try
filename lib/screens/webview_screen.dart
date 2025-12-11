@@ -27,6 +27,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
     super.initState();
     _initializeWebView();
     _loadCredentials();
+    _startLoadingTimeout(); // مؤقت لإخفاء شاشة التحميل
+  }
+
+  // مؤقت لإخفاء شاشة التحميل بعد 500ms - يعمل حتى بدون بيانات محفوظة
+  void _startLoadingTimeout() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
   }
 
   Future<void> _loadCredentials() async {
