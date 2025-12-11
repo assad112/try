@@ -30,9 +30,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _startLoadingTimeout(); // مؤقت لإخفاء شاشة التحميل
   }
 
-  // مؤقت لإخفاء شاشة التحميل بعد 500ms - يعمل حتى بدون بيانات محفوظة
+  // مؤقت لإخفاء شاشة التحميل بعد 1.5 ثانية - يعمل حتى بدون بيانات محفوظة
   void _startLoadingTimeout() {
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
@@ -70,9 +70,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
             });
           },
           onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
+            // لا نخفي شاشة التحميل فوراً - نتركها للـ timeout
+            // هذا يضمن عدم ظهور صفحة تسجيل الدخول
             // تعبئة الفورم تلقائياً بعد تحميل الصفحة
             // محاولات سريعة جداً
             if (_username != null && _password != null) {
