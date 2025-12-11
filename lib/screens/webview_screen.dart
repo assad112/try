@@ -584,23 +584,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ),
               ),
             ),
-          // زر لتعبئة الفورم يدوياً (للاستخدام في حالة فشل التعبئة التلقائية)
-          if (!_isLoading &&
-              _username != null &&
-              _password != null &&
-              !_hasAutoFilled)
-            Positioned(
-              bottom: 20,
-              right: 20,
-              child: FloatingActionButton(
-                onPressed: () {
-                  _autoFillFormWithRetry();
-                },
-                backgroundColor: const Color(0xFFA21955),
-                tooltip: 'Fill form',
-                child: const Icon(Icons.auto_fix_high, color: Colors.white),
-              ),
-            ),
         ],
       ),
     );
