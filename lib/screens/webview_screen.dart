@@ -68,8 +68,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
               if (mounted && !_hasAutoFilled) {
                 _autoFillAndLoginInBackground();
               }
-            } else if (_hasAutoFilled) {
-              // تم تسجيل الدخول - نخفي شاشة التحميل
+            } else if (_hasAutoFilled && !url.contains('/login') && !url.contains('signin')) {
+              // تم تسجيل الدخول ونحن في صفحة أخرى (ليست صفحة تسجيل دخول)
               setState(() {
                 _isLoading = false;
               });
@@ -206,16 +206,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
       if (result.toString() == 'true') {
         setState(() {
           _hasAutoFilled = true;
+          // نبقي شاشة التحميل - ستختفي عندما يتم التنقل للصفحة الجديدة
         });
-
-        // فوري بدون تأخير - ULTRA FAST
-
-        // Hide loading indicator
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        // لا نخفي شاشة التحميل - ستختفي تلقائياً عند التنقل
       } else {
         // فوري بدون تأخير - INSTANT RETRY
         if (mounted && !_hasAutoFilled) {
@@ -569,7 +562,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.7.2 - Hidden Login Page'),
+                  subtitle: const Text('1.7.3 - Fully Hidden Login'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),
