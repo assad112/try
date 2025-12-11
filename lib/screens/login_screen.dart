@@ -394,17 +394,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // تحديث آخر دخول
       await SessionManager.updateLastLogin();
+      await SessionManager.resetFailedAttempts();
+      AppLogger.logLoginAttempt(username, true);
 
-      // تسجيل دخول تلقائي بعد نجاح البصمة
+      if (!mounted) return;
+      
       setState(() {
-        _emailController.text = username;
-        _passwordController.text = password;
+        _isBiometricLoading = false;
       });
 
-      // محاكاة الضغط على زر Log in تلقائياً - فوري بدون تأخير
-      if (mounted) {
-        await _handleLoginAfterBiometric(username, password);
-      }
+      // الانتقال الفوري إلى WebView - بدون أي عمليات إضافية
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const WebViewScreen(shouldAutoFill: true),
+        ),
+      );
     } catch (e) {
       AppLogger.error('Biometric verification error', e);
       if (!mounted) return;
@@ -424,54 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// دالة تسجيل الدخول التلقائي بعد نجاح البصمة
-  Future<void> _handleLoginAfterBiometric(String email, String password) async {
-    setState(() {
-      _isLoading = true;
-      _isBiometricLoading = false;
-    });
 
-    try {
-      AppLogger.info('Automatic login after biometrics', email);
-
-      // حفظ البيانات (تم حفظها مسبقاً، لكن للتأكد)
-      await SessionManager.saveLoginInfo(email, password);
-      await SessionManager.updateLastLogin();
-      await SessionManager.resetFailedAttempts();
-
-      AppLogger.logLoginAttempt(email, true);
-
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-
-      // الانتقال إلى WebView مع تفعيل تعبئة الفورم تلقائياً
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const WebViewScreen(shouldAutoFill: true),
-        ),
-      );
-    } catch (e) {
-      await SessionManager.recordFailedAttempt();
-      AppLogger.logLoginAttempt(email, false);
-      AppLogger.error('Automatic login failed', e);
-
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _isBiometricLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Auto login error: $e'),
-          backgroundColor: AppConstants.errorColor,
-          duration: AppConstants.snackBarLongDuration,
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
