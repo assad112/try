@@ -39,10 +39,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _loadCredentials();
   }
 
-  // مؤقت لإخفاء شاشة التحميل بعد 1 ثانية - يعمل حتى بدون بيانات محفوظة
+  // مؤقت لإخفاء شاشة التحميل - يعمل حتى بدون بيانات محفوظة
   void _startLoadingTimeout() {
-    Future.delayed(const Duration(milliseconds: 1000), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && _isLoading) {
+        // إذا كانت هناك بيانات مؤقتة ولم يتم التحقق، لا نخفي الشاشة
+        if (widget.tempEmail != null && !_loginVerified) {
+          // لا نخفي - ننتظر التحقق
+          return;
+        }
         setState(() {
           _isLoading = false;
         });
@@ -92,7 +97,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             if (widget.tempEmail != null && !_loginVerified) {
               // إذا كانت صفحة Login، معناها فشل تسجيل الدخول
               if (url.contains('/web/login')) {
-                await Future.delayed(const Duration(milliseconds: 2000));
+                await Future.delayed(const Duration(milliseconds: 800)); // أسرع
                 // التحقق إذا لا زلنا في صفحة Login (فشل)
                 final currentUrl = await _controller.currentUrl();
                 if (currentUrl != null && currentUrl.contains('/web/login')) {
@@ -113,10 +118,17 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 }
                 await SessionManager.resetFailedAttempts();
                 AppLogger.logLoginAttempt(widget.tempEmail!, true);
+                
+                // إخفاء شاشة التحميل بعد التحقق
+                if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                }
               }
             }
             
-            // لا نخفي شاشة التحميل فوراً - نتركها للـ timeout
+            // لا نخفي شاشة التحميل فوراً - نتركها للـ timeout أو التحقق
             // هذا يضمن عدم ظهور صفحة تسجيل الدخول
             // تعبئة الفورم تلقائياً بعد تحميل الصفحة
             // محاولات سريعة جداً
