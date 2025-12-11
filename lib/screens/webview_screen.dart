@@ -24,19 +24,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
   bool _hasAutoFilled = false;
   int _autoFillAttempts = 0;
   static const int _maxAutoFillAttempts = 3;
-  static const int _loadingTimeoutSeconds = 1; // حد أقصى 1 ثانية فقط - سريع جداً
 
   @override
   void initState() {
     super.initState();
     _initializeWebView();
     _loadCredentials();
-    _startLoadingTimeout(); // بدء مؤقت التحميل
+    _startLoadingTimeout(); // بدء موقت التحميل
   }
 
-  // مؤقت لإخفاء شاشة التحميل بعد 2 ثانية
+  // موقت لإخفاء شاشة التحميل بعد 0.5 ثانية
   void _startLoadingTimeout() {
-    Future.delayed(Duration(seconds: _loadingTimeoutSeconds), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
@@ -75,18 +74,21 @@ class _WebViewScreenState extends State<WebViewScreen> {
             });
           },
           onPageFinished: (String url) {
-            // إذا كانت هناك بيانات محفوظة، نبقي شاشة التحميل لإخفاء صفحة تسجيل الدخول
+            // إخفاء شاشة التحميل فوراً بعد التحميل
             if (_username != null && _password != null && !_hasAutoFilled) {
-              // نبقي شاشة التحميل ونحاول التعبئة التلقائية فوراً
+              // محاولة التعبئة التلقائية فوراً
               if (mounted && !_hasAutoFilled) {
                 _autoFillAndLoginInBackground();
               }
-            } else if (_hasAutoFilled && !url.contains('/login') && !url.contains('signin')) {
-              // تم تسجيل الدخول ونحن في صفحة أخرى (ليست صفحة تسجيل دخول)
-              setState(() {
-                _isLoading = false;
-              });
             }
+            // إخفاء شاشة التحميل بسرعة بعد 0.3 ثانية
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            });
           },
           onProgress: (int progress) {
             // إبقاء شاشة التحميل إذا كانت هناك بيانات محفوظة
@@ -575,7 +577,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.7.4 - Lightning Fast (1s)'),
+                  subtitle: const Text('1.7.5 - Ultra Fast (0.3s)'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),
