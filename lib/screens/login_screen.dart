@@ -10,6 +10,7 @@ import '../utils/validators.dart';
 import '../utils/app_constants.dart';
 import '../utils/app_logger.dart';
 import 'webview_screen.dart';
+import 'reset_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -758,6 +759,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Forgot Password button
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const ResetPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFFA21955),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
 
