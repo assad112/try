@@ -352,16 +352,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تأكيد تسجيل الخروج'),
-        content: const Text('هل تريد تسجيل الخروج؟'),
+        title: const Text('Confirm Logout'),
+        content: const Text('Do you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('تسجيل الخروج'),
+            child: const Text('Logout'),
           ),
         ],
       ),
@@ -386,7 +386,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم تنظيف الكاش بنجاح'),
+            content: Text('Cache cleared successfully'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -396,7 +396,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل تنظيف الكاش: $e'),
+            content: Text('Failed to clear cache: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 2),
           ),
@@ -415,7 +415,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('إدارة البصمة'),
+        title: const Text('Biometric Settings'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -426,14 +426,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   isAvailable ? Icons.check_circle : Icons.cancel,
                   color: isAvailable ? Colors.green : Colors.red,
                 ),
-                title: const Text('حالة البصمة'),
-                subtitle: Text(isAvailable ? 'متوفرة' : 'غير متوفرة'),
+                title: const Text('Biometric Status'),
+                subtitle: Text(isAvailable ? 'Available' : 'Not Available'),
                 contentPadding: EdgeInsets.zero,
               ),
               const Divider(),
               if (isAvailable) ...[
                 const Text(
-                  'أنواع البصمة المتوفرة:',
+                  'Available Biometric Types:',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
@@ -449,7 +449,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     )),
                 const Divider(),
                 SwitchListTile(
-                  title: const Text('تفعيل تسجيل الدخول بالبصمة'),
+                  title: const Text('Enable Biometric Login'),
                   value: isEnabled,
                   onChanged: (value) async {
                     await SessionManager.setRememberMe(value);
@@ -457,8 +457,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(value
-                            ? 'تم تفعيل البصمة'
-                            : 'تم تعطيل البصمة'),
+                            ? 'Biometric enabled'
+                            : 'Biometric disabled'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -475,17 +475,17 @@ class _WebViewScreenState extends State<WebViewScreen> {
                         context: context,
                         builder: (context) => AlertDialog(
                           title: Text(
-                            result.success ? 'نجح الاختبار' : 'فشل الاختبار',
+                            result.success ? 'Test Successful' : 'Test Failed',
                           ),
                           content: Text(
                             result.success
-                                ? 'البصمة تعمل بشكل صحيح!'
-                                : result.message ?? 'حدث خطأ',
+                                ? 'Biometric is working correctly!'
+                                : result.message ?? 'An error occurred',
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('حسناً'),
+                              child: const Text('OK'),
                             ),
                           ],
                         ),
@@ -493,7 +493,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     }
                   },
                   icon: const Icon(Icons.fingerprint),
-                  label: const Text('اختبار البصمة'),
+                  label: const Text('Test Biometric'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0099A3),
                     foregroundColor: Colors.white,
@@ -506,7 +506,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('إغلاق'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -541,7 +541,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   children: [
                     Icon(Icons.logout, color: Colors.red),
                     SizedBox(width: 12),
-                    Text('تسجيل الخروج'),
+                    Text('Logout'),
                   ],
                 ),
               ),
@@ -551,7 +551,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   children: [
                     Icon(Icons.clear_all, color: Colors.orange),
                     SizedBox(width: 12),
-                    Text('تنظيف الكاش'),
+                    Text('Clear Cache'),
                   ],
                 ),
               ),
@@ -561,7 +561,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   children: [
                     Icon(Icons.fingerprint, color: Colors.blue),
                     SizedBox(width: 12),
-                    Text('إدارة البصمة'),
+                    Text('Biometric Settings'),
                   ],
                 ),
               ),
