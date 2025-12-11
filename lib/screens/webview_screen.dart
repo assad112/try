@@ -41,7 +41,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   // مؤقت لإخفاء شاشة التحميل - يعمل حتى بدون بيانات محفوظة
   void _startLoadingTimeout() {
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 3000), () {
       if (mounted && _isLoading) {
         // إذا كانت هناك بيانات مؤقتة ولم يتم التحقق، لا نخفي الشاشة
         if (widget.tempEmail != null && !_loginVerified) {
@@ -97,7 +97,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             if (widget.tempEmail != null && !_loginVerified) {
               // إذا كانت صفحة Login، معناها فشل تسجيل الدخول
               if (url.contains('/web/login')) {
-                await Future.delayed(const Duration(milliseconds: 800)); // أسرع
+                await Future.delayed(const Duration(milliseconds: 2500)); // وقت أطول للتحقق
                 // التحقق إذا لا زلنا في صفحة Login (فشل)
                 final currentUrl = await _controller.currentUrl();
                 if (currentUrl != null && currentUrl.contains('/web/login')) {
