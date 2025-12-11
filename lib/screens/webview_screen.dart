@@ -381,7 +381,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
     if (confirm == true) {
       final username = _username;
       AppLogger.logLogout(username);
+      
+      // مسح جميع البيانات: SessionManager + WebView cookies + cache
       await SessionManager.logout();
+      await _controller.clearCache();
+      await _controller.clearLocalStorage();
+      
+      // مسح cookies من CookieManager
+      final cookieManager = WebViewCookieManager();
+      await cookieManager.clearCookies();
+      
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
