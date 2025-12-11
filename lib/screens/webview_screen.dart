@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../services/session_manager.dart';
+import '../services/biometric_service.dart';
 import '../utils/app_logger.dart';
 import 'login_screen.dart';
 
@@ -351,16 +352,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm logout'),
-        content: const Text('Do you want to log out?'),
+        title: const Text('تأكيد تسجيل الخروج'),
+        content: const Text('هل تريد تسجيل الخروج؟'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: const Text('إلغاء'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Log out'),
+            child: const Text('تسجيل الخروج'),
           ),
         ],
       ),
@@ -378,6 +379,140 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
+  Future<void> _clearCache() async {
+    try {
+      await _controller.clearCache();
+      await _controller.clearLocalStorage();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تنظيف الكاش بنجاح'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل تنظيف الكاش: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showBiometricSettings() async {
+    final isAvailable = await BiometricService.isAvailable();
+    final biometricTypes = await BiometricService.getAvailableBiometrics();
+    final isEnabled = await SessionManager.getRememberMe();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إدارة البصمة'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                leading: Icon(
+                  isAvailable ? Icons.check_circle : Icons.cancel,
+                  color: isAvailable ? Colors.green : Colors.red,
+                ),
+                title: const Text('حالة البصمة'),
+                subtitle: Text(isAvailable ? 'متوفرة' : 'غير متوفرة'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              const Divider(),
+              if (isAvailable) ...[
+                const Text(
+                  'أنواع البصمة المتوفرة:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ...biometricTypes.map((type) => Padding(
+                      padding: const EdgeInsets.only(left: 16, bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check, size: 16, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text(type.toString().split('.').last),
+                        ],
+                      ),
+                    )),
+                const Divider(),
+                SwitchListTile(
+                  title: const Text('تفعيل تسجيل الدخول بالبصمة'),
+                  value: isEnabled,
+                  onChanged: (value) async {
+                    await SessionManager.setRememberMe(value);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(value
+                            ? 'تم تفعيل البصمة'
+                            : 'تم تعطيل البصمة'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await BiometricService.authenticate();
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(
+                            result.success ? 'نجح الاختبار' : 'فشل الاختبار',
+                          ),
+                          content: Text(
+                            result.success
+                                ? 'البصمة تعمل بشكل صحيح!'
+                                : result.message ?? 'حدث خطأ',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('حسناً'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.fingerprint),
+                  label: const Text('اختبار البصمة'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0099A3),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -387,10 +522,50 @@ class _WebViewScreenState extends State<WebViewScreen> {
         backgroundColor: const Color(0xFFA21955),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Log out',
-            onPressed: _handleLogout,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'المزيد',
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              } else if (value == 'clear_cache') {
+                _clearCache();
+              } else if (value == 'biometric') {
+                _showBiometricSettings();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('تسجيل الخروج'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'clear_cache',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear_all, color: Colors.orange),
+                    SizedBox(width: 12),
+                    Text('تنظيف الكاش'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'biometric',
+                child: Row(
+                  children: [
+                    Icon(Icons.fingerprint, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Text('إدارة البصمة'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
