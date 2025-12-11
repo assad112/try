@@ -497,30 +497,31 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       body: Column(
         children: [
-          // صورة JeeEngineering.png ملاصقة للـ AppBar
+          // صورة JeeEngineering.png في المنتصف
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             color: Colors.white,
-            child: Image.asset(
-              'assets/images/JeeEngineering.png',
-              height: 40,
-              fit: BoxFit.contain,
-              alignment: Alignment.centerLeft,
-              errorBuilder: (context, error, stackTrace) {
-                debugPrint('Error loading image: $error');
-                return Container(
-                  height: 40,
-                  color: Colors.grey.shade200,
-                  child: const Center(
-                    child: Icon(
-                      Icons.image,
-                      size: 30,
-                      color: Colors.grey,
+            child: Center(
+              child: Image.asset(
+                'assets/images/JeeEngineering.png',
+                height: 60,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Error loading image: $error');
+                  return Container(
+                    height: 60,
+                    color: Colors.grey.shade200,
+                    child: const Center(
+                      child: Icon(
+                        Icons.image,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
 
