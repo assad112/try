@@ -68,61 +68,63 @@ class _SplashScreenState extends State<SplashScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // أيقونة logo.png
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    spreadRadius: 2,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // أيقونة logo.png
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/icons/logo.png',
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.contain,
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'assets/icons/logo.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // نص "Jeel ERP"
-            const Text(
-              'Jeel ERP',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 40),
-            // مؤشر التحميل الدائري
-            SizedBox(
-              width: 50,
-              height: 50,
-              child: CircularProgressIndicator(
-                strokeWidth: 4,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFFA21955),
+              const SizedBox(height: 24),
+              // نص "Jeel ERP"
+              const Text(
+                'Jeel ERP',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                backgroundColor: const Color(0xFF0099A3).withValues(alpha: 0.2),
               ),
-            ),
-          ],
+              const SizedBox(height: 40),
+              // مؤشر التحميل الدائري
+              SizedBox(
+                width: 50,
+                height: 50,
+                child: CircularProgressIndicator(
+                  strokeWidth: 4,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFFA21955),
+                  ),
+                  backgroundColor: const Color(
+                    0xFF0099A3,
+                  ).withValues(alpha: 0.2),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
