@@ -62,26 +62,26 @@ class _WebViewScreenState extends State<WebViewScreen> {
             });
           },
           onPageFinished: (String url) {
-            // If we have credentials and haven't auto-filled yet, try auto-fill
+            // إذا كانت هناك بيانات محفوظة، نبقي شاشة التحميل لإخفاء صفحة تسجيل الدخول
             if (_username != null && _password != null && !_hasAutoFilled) {
-              // فوري بدون تأخير - INSTANT
+              // نبقي شاشة التحميل ونحاول التعبئة التلقائية فوراً
               if (mounted && !_hasAutoFilled) {
                 _autoFillAndLoginInBackground();
               }
-            } else {
-              // No credentials or already auto-filled - hide loading
+            } else if (_hasAutoFilled) {
+              // تم تسجيل الدخول - نخفي شاشة التحميل
               setState(() {
                 _isLoading = false;
               });
             }
           },
           onProgress: (int progress) {
-            // Try auto-fill at 100% if not done yet
+            // إبقاء شاشة التحميل إذا كانت هناك بيانات محفوظة
             if (progress == 100 &&
                 _username != null &&
                 _password != null &&
                 !_hasAutoFilled) {
-              // فوري بدون تأخير - INSTANT
+              // محاولة التعبئة فوراً
               if (mounted && !_hasAutoFilled) {
                 _autoFillAndLoginInBackground();
               }
@@ -103,12 +103,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     // Check max attempts
     if (_autoFillAttempts >= _maxAutoFillAttempts) {
-      // Too many attempts, stop trying and hide loading
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      // تجاوزنا عدد المحاولات - نبقي شاشة التحميل لأنها أفضل من إظهار صفحة تسجيل الدخول
       return;
     }
 
@@ -574,7 +569,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.7.1 - Instant Biometric'),
+                  subtitle: const Text('1.7.2 - Hidden Login Page'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),
