@@ -8,8 +8,17 @@ import 'login_screen.dart';
 
 class WebViewScreen extends StatefulWidget {
   final bool shouldAutoFill;
+  final String? tempEmail;
+  final String? tempPassword;
+  final bool? rememberMe;
 
-  const WebViewScreen({super.key, this.shouldAutoFill = false});
+  const WebViewScreen({
+    super.key,
+    this.shouldAutoFill = false,
+    this.tempEmail,
+    this.tempPassword,
+    this.rememberMe,
+  });
 
   @override
   State<WebViewScreen> createState() => _WebViewScreenState();
@@ -21,6 +30,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   String? _username;
   String? _password;
   bool _hasAutoFilled = false;
+  bool _loginVerified = false;
 
   @override
   void initState() {
@@ -41,15 +51,23 @@ class _WebViewScreenState extends State<WebViewScreen> {
   }
 
   Future<void> _loadCredentials() async {
-    final username = await SessionManager.getUsername();
-    final password = await SessionManager.getPassword();
-    setState(() {
-      _username = username;
-      _password = password;
-    });
+    // استخدم البيانات المؤقتة إذا كانت موجودة، وإلا فاستخدم المحفوظة
+    if (widget.tempEmail != null && widget.tempPassword != null) {
+      setState(() {
+        _username = widget.tempEmail;
+        _password = widget.tempPassword;
+      });
+    } else {
+      final username = await SessionManager.getUsername();
+      final password = await SessionManager.getPassword();
+      setState(() {
+        _username = username;
+        _password = password;
+      });
+    }
 
     // إذا كانت هناك بيانات محفوظة، نفعّل التعبئة التلقائية دائماً
-    if (username != null && password != null && !widget.shouldAutoFill) {
+    if (_username != null && _password != null && !widget.shouldAutoFill) {
       // تعبئة فورية - بدون تأخير
       if (mounted && !_hasAutoFilled) {
         _autoFillFormWithRetry();
@@ -69,7 +87,35 @@ class _WebViewScreenState extends State<WebViewScreen> {
             });
             _startLoadingTimeout(); // مؤقت لإخفاء شاشة التحميل بعد 1 ثانية
           },
-          onPageFinished: (String url) {
+          onPageFinished: (String url) async {
+            // التحقق من نجاح تسجيل الدخول
+            if (widget.tempEmail != null && !_loginVerified) {
+              // إذا كانت صفحة Login، معناها فشل تسجيل الدخول
+              if (url.contains('/web/login')) {
+                await Future.delayed(const Duration(milliseconds: 2000));
+                // التحقق إذا لا زلنا في صفحة Login (فشل)
+                final currentUrl = await _controller.currentUrl();
+                if (currentUrl != null && currentUrl.contains('/web/login')) {
+                  if (mounted) {
+                    Navigator.of(context).pop(false); // فشل
+                  }
+                  return;
+                }
+              } else if (!url.contains('/web/reset_password')) {
+                // نجح تسجيل الدخول - نحفظ البيانات
+                _loginVerified = true;
+                if (widget.rememberMe == true) {
+                  await SessionManager.saveLoginInfo(
+                    widget.tempEmail!,
+                    widget.tempPassword!,
+                  );
+                  await SessionManager.updateLastLogin();
+                }
+                await SessionManager.resetFailedAttempts();
+                AppLogger.logLoginAttempt(widget.tempEmail!, true);
+              }
+            }
+            
             // لا نخفي شاشة التحميل فوراً - نتركها للـ timeout
             // هذا يضمن عدم ظهور صفحة تسجيل الدخول
             // تعبئة الفورم تلقائياً بعد تحميل الصفحة

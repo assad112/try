@@ -137,44 +137,51 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       AppLogger.info('Starting login process', email);
 
-      // حفظ تفضيل "تذكرني"
+      // حفظ تفضيل "تذكرني" مؤقتاً
       await SessionManager.setRememberMe(_rememberMe);
 
-      // حفظ بيانات الدخول في التخزين الآمن (إذا كان تضكرني مفعل)
-      if (_rememberMe) {
-        await SessionManager.saveLoginInfo(email, password);
-        await SessionManager.updateLastLogin();
-      }
-
-      // فوري بدون تأخير - ULTRA FAST
-
-      final savedUsername = await SessionManager.getUsername();
-      final savedPassword = await SessionManager.getPassword();
-      final isLoggedIn = await SessionManager.isLoggedIn();
-
-      if ((_rememberMe &&
-              savedUsername == email &&
-              savedPassword == password &&
-              isLoggedIn) ||
-          !_rememberMe) {
-        // إعادة تعيين المحاولات الفاشلة عند النجاح
-        await SessionManager.resetFailedAttempts();
-        AppLogger.logLoginAttempt(email, true);
-
-        if (!mounted) return;
+      // لا نحفظ البيانات بشكل دائم - سنحفظها فقط بعد نجاح تسجيل الدخول
+      // الانتقال إلى WebView مع البيانات للتحقق
+      if (!mounted) return;
+      
+      final result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => WebViewScreen(
+            shouldAutoFill: true,
+            tempEmail: email,
+            tempPassword: password,
+            rememberMe: _rememberMe,
+          ),
+        ),
+      );
+      
+      if (!mounted) return;
+      
+      // إذا رجع المستخدم (result == null أو false) = فشل تسجيل الدخول
+      if (result != true) {
         setState(() {
           _isLoading = false;
         });
-
-        // الانتقال إلى الـ WebView مع التسجيل التلقائي السريع في الخلفية
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const WebViewScreen(shouldAutoFill: true),
+        
+        // تسجيل محاولة فاشلة
+        await SessionManager.recordFailedAttempt();
+        AppLogger.logLoginAttempt(email, false);
+        
+        final remaining = await SessionManager.getRemainingAttempts();
+        String errorMessage = 'Login failed. Please check your credentials.';
+        if (remaining > 0 && remaining <= 3) {
+          errorMessage += '\nRemaining attempts: $remaining';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppConstants.errorColor,
+            duration: AppConstants.snackBarLongDuration,
           ),
         );
-      } else {
-        throw Exception('Failed to save data');
       }
+      // إذا result == true، المستخدم نجح في تسجيل الدخول وبقي في WebView
     } catch (e) {
       // تسجيل محاولة فاشلة
       await SessionManager.recordFailedAttempt();
