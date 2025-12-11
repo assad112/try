@@ -542,6 +542,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
         backgroundColor: const Color(0xFFA21955),
         foregroundColor: Colors.white,
         actions: [
+          // زر Refresh
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              _controller.reload();
+            },
+          ),
+          // قائمة الخيارات
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             tooltip: 'المزيد',
