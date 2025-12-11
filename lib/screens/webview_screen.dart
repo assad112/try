@@ -24,12 +24,25 @@ class _WebViewScreenState extends State<WebViewScreen> {
   bool _hasAutoFilled = false;
   int _autoFillAttempts = 0;
   static const int _maxAutoFillAttempts = 3;
+  static const int _loadingTimeoutSeconds = 1; // حد أقصى 1 ثانية فقط - سريع جداً
 
   @override
   void initState() {
     super.initState();
     _initializeWebView();
     _loadCredentials();
+    _startLoadingTimeout(); // بدء مؤقت التحميل
+  }
+
+  // مؤقت لإخفاء شاشة التحميل بعد 2 ثانية
+  void _startLoadingTimeout() {
+    Future.delayed(Duration(seconds: _loadingTimeoutSeconds), () {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
   }
 
   Future<void> _loadCredentials() async {
@@ -190,7 +203,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 forms[0].submit();
               }
               return true;
-            }, 50);
+            }, 10); // فوري 10ms فقط
           }
           
           return usernameFilled && passwordFilled;
@@ -562,7 +575,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.7.3 - Fully Hidden Login'),
+                  subtitle: const Text('1.7.4 - Lightning Fast (1s)'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),
