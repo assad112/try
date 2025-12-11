@@ -16,8 +16,7 @@ class DebugHelper {
         return;
       }
       
-      // انتظار قصير
-      await Future.delayed(const Duration(milliseconds: 300));
+      // فوري بدون تأخير - ULTRA FAST
       
       // اختبار القراءة
       try {

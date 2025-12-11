@@ -42,12 +42,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     // إذا كانت هناك بيانات محفوظة، نفعّل التعبئة التلقائية دائماً
     if (username != null && password != null && !widget.shouldAutoFill) {
-      // تعبئة فورية بدون تأخير
-      Future.delayed(const Duration(milliseconds: 30), () {
-        if (mounted && !_hasAutoFilled) {
-          _autoFillFormWithRetry();
-        }
-      });
+      // تعبئة فورية بدون تأخير - INSTANT
+      if (mounted && !_hasAutoFilled) {
+        _autoFillFormWithRetry();
+      }
     }
   }
 
@@ -66,11 +64,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
           onPageFinished: (String url) {
             // If we have credentials and haven't auto-filled yet, try auto-fill
             if (_username != null && _password != null && !_hasAutoFilled) {
-              Future.delayed(const Duration(milliseconds: 20), () {
-                if (mounted && !_hasAutoFilled) {
-                  _autoFillAndLoginInBackground();
-                }
-              });
+              // فوري بدون تأخير - INSTANT
+              if (mounted && !_hasAutoFilled) {
+                _autoFillAndLoginInBackground();
+              }
             } else {
               // No credentials or already auto-filled - hide loading
               setState(() {
@@ -84,11 +81,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 _username != null &&
                 _password != null &&
                 !_hasAutoFilled) {
-              Future.delayed(const Duration(milliseconds: 10), () {
-                if (mounted && !_hasAutoFilled) {
-                  _autoFillAndLoginInBackground();
-                }
-              });
+              // فوري بدون تأخير - INSTANT
+              if (mounted && !_hasAutoFilled) {
+                _autoFillAndLoginInBackground();
+              }
             }
           },
           onWebResourceError: (error) {
@@ -217,8 +213,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           _hasAutoFilled = true;
         });
 
-        // Wait briefly for navigation
-        await Future.delayed(const Duration(milliseconds: 50));
+        // فوري بدون تأخير - ULTRA FAST
 
         // Hide loading indicator
         if (mounted) {
@@ -227,15 +222,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
           });
         }
       } else {
-        // Quick retry
-        await Future.delayed(const Duration(milliseconds: 20));
+        // فوري بدون تأخير - INSTANT RETRY
         if (mounted && !_hasAutoFilled) {
           _autoFillAndLoginInBackground();
         }
       }
     } catch (e) {
-      // Quick retry on error
-      await Future.delayed(const Duration(milliseconds: 20));
+      // فوري بدون تأخير - INSTANT RETRY
       if (mounted && !_hasAutoFilled) {
         _autoFillAndLoginInBackground();
       }
@@ -581,7 +574,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline, color: Color(0xFF0099A3)),
                   title: const Text('App Version'),
-                  subtitle: const Text('1.6.0 - Enhanced Biometric'),
+                  subtitle: const Text('1.7.0 - Ultra Fast'),
                   contentPadding: EdgeInsets.zero,
                 ),
                 const Divider(),

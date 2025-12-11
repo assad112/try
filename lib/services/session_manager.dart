@@ -39,15 +39,12 @@ class SessionManager {
         throw Exception('Username and password are required');
       }
 
-      // حفظ البيانات بشكل متسلسل للتأكد من الحفظ
+      // حفظ البيانات بشكل متسلسل للتأكد من الحفظ - فوري بدون تأخير
       await _storage.write(key: _keyUsername, value: username);
-      await Future.delayed(const Duration(milliseconds: 100));
 
       await _storage.write(key: _keyPassword, value: password);
-      await Future.delayed(const Duration(milliseconds: 100));
 
       await _storage.write(key: _keyIsLoggedIn, value: 'true');
-      await Future.delayed(const Duration(milliseconds: 100));
 
       // التحقق من الحفظ
       final savedUsername = await _storage.read(key: _keyUsername);

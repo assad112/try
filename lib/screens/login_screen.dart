@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await SessionManager.updateLastLogin();
       }
 
-      await Future.delayed(const Duration(milliseconds: 200));
+      // فوري بدون تأخير - ULTRA FAST
 
       final savedUsername = await SessionManager.getUsername();
       final savedPassword = await SessionManager.getPassword();
@@ -401,8 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text = password;
       });
 
-      // محاكاة الضغط على زر Log in تلقائياً
-      await Future.delayed(const Duration(milliseconds: 200));
+      // محاكاة الضغط على زر Log in تلقائياً - فوري بدون تأخير
       if (mounted) {
         await _handleLoginAfterBiometric(username, password);
       }
