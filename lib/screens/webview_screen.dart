@@ -30,9 +30,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _startLoadingTimeout(); // مؤقت لإخفاء شاشة التحميل
   }
 
-  // مؤقت لإخفاء شاشة التحميل بعد 1.5 ثانية - يعمل حتى بدون بيانات محفوظة
+  // مؤقت لإخفاء شاشة التحميل بعد 1 ثانية - يعمل حتى بدون بيانات محفوظة
   void _startLoadingTimeout() {
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
